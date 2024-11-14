@@ -1,11 +1,8 @@
-⚠️ <b>IMPORTANT NOTICE !!</b><br />
-After a physical computer damage accident in May 2023 worsening all the way to November 2023, the power button quit working, and as a result, Charms Bar Port development had to be halted indefinitely and it still is in the state of a possibility it will never be picked up again. Since PC repairs are taking over a year, to the point that I cannot do anything about it, I would like to have you <b>NOT</b> ask when this will be released as I have better things to do.
+⚠️ <b>IMPORTANT NOTICE!!!</b><br />
+<b>I am not a programmer</b> and I don't know how to code. If you enconunter any bug, I will <b>NOT</b> help, because I don't know how.
 
 
-For now, I am stuck with a Mac and in the meantime, please check out <a href="https://github.com/Icepenguins101/australis-theme-port">Australis Theme Port</a> for Mozilla Firefox instead of this project. Australis Theme Port is a holdover until I receive my PC back. Please stay up to date on my <a href="https://www.facebook.com/jayden.montoya">Facebook</a> or <a href="https://www.instagram.com/jaydenwmontoya/">Instagram</a> for the latest updates on when Charms Bar Port will resume. 
-
-
-Please hope that the computer repair fees wouldn't be too large, otherwise I may have to sue Jack Dorsey for discrimination.
+As for now, please check out <a href="https://github.com/Icepenguins101/charms-bar-port">original project</a> instead of this project.
 
 Thank you for your patience. May Windows 8.1 live in your hearts and memory.
 
