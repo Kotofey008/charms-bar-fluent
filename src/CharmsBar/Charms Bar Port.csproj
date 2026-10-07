@@ -97,6 +97,13 @@
 		<None Remove="Assets\Images\Windows8HighContrastDark.png" />
 		<None Remove="Assets\Images\Windows8Hover.png" />
 		<None Remove="Assets\Images\Windows8Inactive.png" />
+		<None Remove="Assets\Images\Windows8Mask.png" />
+		<None Remove="Assets\Images\Windows8MenuMask.png" />
+		<None Remove="Assets\Images\SearchInactiveDark.png" />
+		<None Remove="Assets\Images\ShareInactiveDark.png" />
+		<None Remove="Assets\Images\DevicesInactiveDark.png" />
+		<None Remove="Assets\Images\SettingsInactiveDark.png" />
+		<None Remove="Assets\Images\Windows8InactiveDark.png" />
 		<None Remove="Icon.png" />
 	</ItemGroup>
 
@@ -336,6 +343,27 @@
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Resource>
 		<Resource Include="Assets\Images\Windows8Hover.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\Images\Windows8Mask.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\Images\Windows8MenuMask.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\Images\SearchInactiveDark.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\Images\ShareInactiveDark.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\Images\DevicesInactiveDark.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\Images\SettingsInactiveDark.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Assets\Images\Windows8InactiveDark.png">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Resource>
 		<Resource Include="Assets\Images\Windows8Inactive.png">

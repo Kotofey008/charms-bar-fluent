@@ -33,7 +33,7 @@ using System.Threading;
 
 namespace CharmsBarPort
 {
-    public partial class CharmsClock : Window
+    public partial class CharmsClock : ShellWindow
     {
         public BackgroundWorker CheckSignal = new BackgroundWorker();
         public Microsoft.Win32.RegistryKey localKey = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
@@ -52,7 +52,6 @@ namespace CharmsBarPort
             ShowInTaskbar = false;
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
-            AllowsTransparency = true;
             Height = 140;
             WindowStartupLocation = WindowStartupLocation.Manual;
             Left = 51;
@@ -157,7 +156,8 @@ namespace CharmsBarPort
 
                 if (SystemParameters.HighContrast == false)
                 {
-                    isDark = "";
+                    // dark glyphs when the system theme is light and the Mica surface is light
+                    isDark = (Backdrop.IsActive && Backdrop.IsLightTheme) ? "Dark" : "";
                 }
 
                 if (SystemParameters.HighContrast == true)
@@ -191,19 +191,26 @@ namespace CharmsBarPort
                 {
                     ClockBorder.Visibility = Visibility.Hidden;
                     BrushConverter converter = new();
-                        if (useTransparency == false)
-                        {
-                            this.Background = (Brush)converter.ConvertFromString("#111111");
-                        }
-                        else
-                        {
-                            this.Background = (Brush)converter.ConvertFromString("#f0111111");
-                        }
-                        ClockLines.Foreground = (Brush)converter.ConvertFromString("#ffffff");
-                    Clocks.Foreground = (Brush)converter.ConvertFromString("#ffffff");
-                    Week.Foreground = (Brush)converter.ConvertFromString("#ffffff");
-                    Date.Foreground = (Brush)converter.ConvertFromString("#ffffff");
-                    Clocked.Foreground = (Brush)converter.ConvertFromString("#ffffff");
+                    string textColor = "#ffffff";
+                    if (Backdrop.IsActive)
+                    {
+                        // Real Mica from DWM: the WPF surface stays transparent.
+                        this.Background = Brushes.Transparent;
+                        if (Backdrop.IsLightTheme) textColor = "#1b1b1b";
+                    }
+                    else if (useTransparency == false)
+                    {
+                        this.Background = (Brush)converter.ConvertFromString("#111111");
+                    }
+                    else
+                    {
+                        this.Background = (Brush)converter.ConvertFromString("#f0111111");
+                    }
+                    ClockLines.Foreground = (Brush)converter.ConvertFromString(textColor);
+                    Clocks.Foreground = (Brush)converter.ConvertFromString(textColor);
+                    Week.Foreground = (Brush)converter.ConvertFromString(textColor);
+                    Date.Foreground = (Brush)converter.ConvertFromString(textColor);
+                    Clocked.Foreground = (Brush)converter.ConvertFromString(textColor);
                 }
 
                 if (SystemParameters.HighContrast == true)
@@ -237,12 +244,12 @@ namespace CharmsBarPort
 
                 if (SystemParameters.HighContrast == false)
                 {
-                    NoDrivers.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon103.png", UriKind.Relative));
-                    NoInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon115.png", UriKind.Relative));
-                    Ethernet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon106.png", UriKind.Relative));
-                    NoInternetFound.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon112.png", UriKind.Relative));
-                    IsCharging.Source = new BitmapImage(new Uri(@"/Assets/Images/BatteryFullCharging.png", UriKind.Relative));
-                    Airplane.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon118.png", UriKind.Relative));
+                    NoDrivers.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon103" + isDark + ".png", UriKind.Relative));
+                    NoInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon115" + isDark + ".png", UriKind.Relative));
+                    Ethernet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon106" + isDark + ".png", UriKind.Relative));
+                    NoInternetFound.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon112" + isDark + ".png", UriKind.Relative));
+                    IsCharging.Source = new BitmapImage(new Uri(@"/Assets/Images/BatteryFullCharging" + isDark + ".png", UriKind.Relative));
+                    Airplane.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon118" + isDark + ".png", UriKind.Relative));
                 }
 
                 if (SystemParameters.HighContrast == true)

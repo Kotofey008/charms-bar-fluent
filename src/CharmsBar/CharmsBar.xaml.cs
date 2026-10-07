@@ -89,7 +89,7 @@ namespace CharmsBarPort
 
     }
     #endregion Cursor info
-    public sealed partial class CharmsBar : Window
+    public sealed partial class CharmsBar : ShellWindow
     {
         //the Share Charm is all fired up for its new iteration!
         [ComImport]
@@ -139,8 +139,8 @@ namespace CharmsBarPort
         public bool openSettings = false;
         public int findTimer = 0;
         BrushConverter converter = new();
-        Window CharmsClock = new CharmsClock();
-        Window CharmsMenu = new CharmsMenu();
+        ShellWindow CharmsClock = new CharmsClock();
+        ShellWindow CharmsMenu = new CharmsMenu();
         public bool holder = false;
         public int dasBoot = 0;
         static readonly IntPtr HWND_NOTOPMOST = new IntPtr(-2);
@@ -149,8 +149,9 @@ namespace CharmsBarPort
         static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
         const UInt32 SWP_NOSIZE = 0x0001;
         const UInt32 SWP_NOMOVE = 0x0002;
-        const UInt32 SWP_SHOWWINDOW = 0x4000;
-        const UInt32 TOPMOST_FLAGS = SWP_SHOWWINDOW | SWP_NOMOVE | SWP_NOSIZE;
+        const UInt32 SWP_NOACTIVATE = 0x0010;
+        // No SWP_SHOWWINDOW: ShellWindow decides when the HWND is shown. No activation either: never steal focus.
+        const UInt32 TOPMOST_FLAGS = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE;
         public bool preventReload = false;
         public int blockRepeating = 0;
         public int cursorStay = 0;
@@ -291,7 +292,6 @@ namespace CharmsBarPort
             ShowInTaskbar = false;
             WindowStyle = WindowStyle.None;
             ResizeMode = ResizeMode.NoResize;
-            AllowsTransparency = true;
             Height = SystemParameters.PrimaryScreenHeight;
             Width = 86;
             WindowStartupLocation = WindowStartupLocation.Manual;
@@ -308,6 +308,7 @@ namespace CharmsBarPort
             this.KeyDown += new System.Windows.Input.KeyEventHandler(MainWindow_KeyDown);
             System.Windows.Forms.Application.ThreadException += new ThreadExceptionEventHandler(CharmsBar.Form1_UIThreadException);
             InitializeComponent();
+            winMask = MetroColor.OpacityMask;   // logo-shaped accent mask from the XAML (see ApplyFluentChrome)
         }
 
         void MainWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -533,7 +534,112 @@ private string GetActiveWindowTitle()
         {
             var wih = new System.Windows.Interop.WindowInteropHelper(this);
             SetWindowPos(wih.Handle, HWND_TOPMOST, 100, 100, 300, 300, TOPMOST_FLAGS);
+            SyncShellVisibility();   // the bar starts hidden (level 0); StartupUri has just shown the HWND
             _initTimer();
+        }
+
+        // ------------------------------------------------------------------------------------------
+        // Fluent chrome. Everything that used to be an opaque #111111/#333333/#444444 plate is now either
+        // transparent (the DWM backdrop shows through) or a translucent overlay on top of the backdrop.
+        //   state 0 = legacy solid look (no system backdrop: Windows 10, composition off) - old colours
+        //   state 1 = Mica, dark system theme
+        //   state 2 = Mica, light system theme
+        // High contrast keeps its own, unchanged code path.
+        // ------------------------------------------------------------------------------------------
+        private int chromeTheme = -1;
+        private Brush winMask;
+
+        private static Brush Frozen(string hex)
+        {
+            var b = (Brush)new BrushConverter().ConvertFromString(hex);
+            b.Freeze();
+            return b;
+        }
+
+        private static readonly Brush legacyPanel = Frozen("#111111");
+        private static readonly Brush legacyHover = Frozen("#333333");
+        private static readonly Brush legacyDown = Frozen("#444444");
+        private static readonly Brush legacyText = Frozen("#A0A0A0");
+
+        private static readonly Brush darkPanel = Frozen("#0DFFFFFF");
+        private static readonly Brush darkHover = Frozen("#1FFFFFFF");
+        private static readonly Brush darkDown = Frozen("#33FFFFFF");
+        private static readonly Brush darkText = Frozen("#D4D4D4");
+
+        private static readonly Brush lightPanel = Frozen("#0D000000");
+        private static readonly Brush lightHover = Frozen("#14000000");
+        private static readonly Brush lightDown = Frozen("#26000000");
+        private static readonly Brush lightText = Frozen("#505050");
+
+        private static int CurrentChromeState()
+        {
+            if (!Backdrop.IsActive) return 0;
+            return Backdrop.IsLightTheme ? 2 : 1;
+        }
+
+        /// <summary>Background of the "active" charms panel (shown on top of the backdrop while charmsUse is true).</summary>
+        private Brush PanelBrush()
+        {
+            if (SystemParameters.HighContrast) return SystemColors.WindowBrush;
+            switch (CurrentChromeState())
+            {
+                case 1: return darkPanel;
+                case 2: return lightPanel;
+                default: return legacyPanel;
+            }
+        }
+
+        private static BitmapImage Img(string name)
+        {
+            return new BitmapImage(new Uri(@"/Assets/Images/" + name + ".png", UriKind.Relative));
+        }
+
+        private void ApplyFluentChrome()
+        {
+            int state = CurrentChromeState();
+            Brush panel, hover, down, text;
+            switch (state)
+            {
+                case 1: panel = darkPanel; hover = darkHover; down = darkDown; text = darkText; break;
+                case 2: panel = lightPanel; hover = lightHover; down = lightDown; text = lightText; break;
+                default: panel = legacyPanel; hover = legacyHover; down = legacyDown; text = legacyText; break;
+            }
+
+            CharmBG.Background = panel;
+            SearchText.Foreground = text;
+            ShareText.Foreground = text;
+            WinText.Foreground = text;
+            DevicesText.Foreground = text;
+            SettingsText.Foreground = text;
+
+            SearchHover.Background = hover;
+            ShareHover.Background = hover;
+            WinHover.Background = hover;
+            DevicesHover.Background = hover;
+            SettingsHover.Background = hover;
+            SearchDown.Background = down;
+            ShareDown.Background = down;
+            WinDown.Background = down;
+            DevicesDown.Background = down;
+            SettingsDown.Background = down;
+
+            if (MetroColor.OpacityMask == null) MetroColor.OpacityMask = winMask;
+
+            // Icons only change when the theme (or high contrast) changes, not every tick.
+            if (state != chromeTheme)
+            {
+                chromeTheme = state;
+                string d = state == 2 ? "Dark" : "";
+                SearchCharm.Source = Img("Search" + d);
+                ShareCharm.Source = Img("Share" + d);
+                DevicesCharm.Source = Img("Devices" + d);
+                SettingsCharm.Source = Img("Settings" + d);
+                SearchCharmInactive.Source = Img("SearchInactive" + d);
+                ShareCharmInactive.Source = Img("ShareInactive" + d);
+                DevicesCharmInactive.Source = Img("DevicesInactive" + d);
+                SettingsCharmInactive.Source = Img("SettingsInactive" + d);
+                WinCharmInactive.Source = Img("Windows8Inactive" + d);
+            }
         }
 
         private void SetBackgroundColor()
@@ -1471,7 +1577,7 @@ private string GetActiveWindowTitle()
                         IHOb = 1.00;
                         var dispWidth = SystemParameters.PrimaryScreenWidth;
                         var dispHeight = SystemParameters.PrimaryScreenHeight;
-                        CharmsMenu.Top = dispHeight - 200;
+                        CharmsMenu.Top = dispHeight - 190;
                         CharmsMenu.Opacity = IHOb;
                         CharmsClock.Opacity = IHOb;
                         CharmsClock.Left = dispWidth - 527;
@@ -2125,7 +2231,7 @@ private string GetActiveWindowTitle()
                     keyboardShortcut = true;
                     this.BringIntoView();
                     this.Focus();
-                    this.Activate();
+                    ActivateShell();
                 }
 
                 if (Keyboard.IsKeyDown(Key.RWin) && Keyboard.IsKeyDown(Key.C) && keyboardShortcut == false)
@@ -2137,7 +2243,7 @@ private string GetActiveWindowTitle()
                     keyboardShortcut = true;
                     this.BringIntoView();
                     this.Focus();
-                    this.Activate();
+                    ActivateShell();
                 }
 
                     if (charmsUse == false)
@@ -2325,8 +2431,7 @@ private string GetActiveWindowTitle()
 
                 if (charmsUse == true && CharmsClock.IsVisible && keyboardShortcut == true && useAnimations == true && SystemParameters.HighContrast == false)
                 {
-                    var brush = (Brush)converter.ConvertFromString("#111111");
-                    CharmBG.Background = brush;
+                    CharmBG.Background = PanelBrush();
                     CharmBG.Opacity = 1;
                 }
 
@@ -4313,12 +4418,6 @@ private string GetActiveWindowTitle()
                     FadeBlocker.Visibility = Visibility.Visible;
                     CharmBorder.Visibility = Visibility.Hidden;
                     CharmBorder.Background = (Brush)converter.ConvertFromString("#111111");
-                    SearchText.Foreground = (Brush)converter.ConvertFromString("#a0a0a0");
-                    ShareText.Foreground = (Brush)converter.ConvertFromString("#a0a0a0");
-                    WinText.Foreground = (Brush)converter.ConvertFromString("#a0a0a0");
-                    DevicesText.Foreground = (Brush)converter.ConvertFromString("#a0a0a0");
-                    SettingsText.Foreground = (Brush)converter.ConvertFromString("#a0a0a0");
-                    CharmBG.Background = (Brush)converter.ConvertFromString("#111111");
                     if (MetroColor.Background.ToString() == "#00000000")
                     {
                         SearchCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Search.png", UriKind.Relative));
@@ -4328,16 +4427,7 @@ private string GetActiveWindowTitle()
                         SettingsCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Settings.png", UriKind.Relative));
                         MetroColor.Background = SystemParameters.WindowGlassBrush;
                     }
-                    SearchHover.Background = (Brush)converter.ConvertFromString("#333333");
-                    ShareHover.Background = (Brush)converter.ConvertFromString("#333333");
-                    WinHover.Background = (Brush)converter.ConvertFromString("#333333");
-                    DevicesHover.Background = (Brush)converter.ConvertFromString("#333333");
-                    SettingsHover.Background = (Brush)converter.ConvertFromString("#333333");
-                    SearchDown.Background = (Brush)converter.ConvertFromString("#444444");
-                    ShareDown.Background = (Brush)converter.ConvertFromString("#444444");
-                    WinDown.Background = (Brush)converter.ConvertFromString("#444444");
-                    DevicesDown.Background = (Brush)converter.ConvertFromString("#444444");
-                    SettingsDown.Background = (Brush)converter.ConvertFromString("#444444");
+                    ApplyFluentChrome();
                 }
 
                 if (SystemParameters.HighContrast == true)
@@ -4352,6 +4442,8 @@ private string GetActiveWindowTitle()
                     DevicesText.Foreground = SystemColors.WindowTextBrush;
                     SettingsText.Foreground = SystemColors.WindowTextBrush;
                     CharmBG.Background = SystemColors.WindowBrush;
+                    chromeTheme = -1;
+                    if (MetroColor.OpacityMask != null) MetroColor.OpacityMask = null;
                     System.Drawing.Color col = System.Drawing.ColorTranslator.FromHtml(SystemColors.WindowBrush.ToString());
                     if (col.R * 0.2126 + col.G * 0.7152 + col.B * 0.0722 < 255 / 2)
                     {

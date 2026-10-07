@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -33,9 +33,9 @@ using System.Threading;
 
 namespace CharmsBarPort
 {
-    public partial class CharmsMenu : Window
+    public partial class CharmsMenu : ShellWindow
     {
-        Window CharmsClock = new CharmsClock();
+        ShellWindow CharmsClock = new CharmsClock();
         public Microsoft.Win32.RegistryKey localKey = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
         public bool charmsMenuOpen = false;
         BrushConverter converter = new();
@@ -51,7 +51,7 @@ namespace CharmsBarPort
             Background = brush;
             WindowStartupLocation = WindowStartupLocation.Manual;
             Left = 0;
-            Top = dispHeight - 200;
+            Top = dispHeight - 190;   // panel now starts at the window top (old 10px transparent margin removed)
             System.Windows.Forms.Application.ThreadException += new ThreadExceptionEventHandler(CharmsMenu.Form1_UIThreadException);
             InitializeComponent();
             _initTimer();
@@ -106,7 +106,42 @@ namespace CharmsBarPort
                     CharmsClock.Left = dispWidth - 527;
                 }
 
+                ApplyTheme();
+
             }));
+        }
+
+        private int menuTheme = -1; // 0 legacy dark, 1 Mica dark, 2 Mica light
+        private static readonly Brush darkText = Freeze("#D4D4D4");
+        private static readonly Brush lightText = Freeze("#505050");
+        private static readonly Brush legacyText = Freeze("#A0A0A0");
+
+        private static Brush Freeze(string hex)
+        {
+            var b = (Brush)new BrushConverter().ConvertFromString(hex);
+            b.Freeze();
+            return b;
+        }
+
+        /// <summary>Text/icon colours follow the system light/dark theme; the backdrop itself is drawn by DWM.</summary>
+        private void ApplyTheme()
+        {
+            int state = !Backdrop.IsActive ? 0 : (Backdrop.IsLightTheme ? 2 : 1);
+            if (state == menuTheme) return;
+            menuTheme = state;
+
+            Brush text = state == 2 ? lightText : (state == 1 ? darkText : legacyText);
+            SettingsText.Foreground = text;
+            DevicesText.Foreground = text;
+            ShareText.Foreground = text;
+            SearchText.Foreground = text;
+            WinText.Foreground = text;
+
+            string d = state == 2 ? "Dark" : "";
+            SettingsCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Settings" + d + ".png", UriKind.Relative));
+            DevicesCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Devices" + d + ".png", UriKind.Relative));
+            ShareCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Share" + d + ".png", UriKind.Relative));
+            SearchCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Search" + d + ".png", UriKind.Relative));
         }
 
         // Handle the UI exceptions by showing a dialog box, and asking the user whether
