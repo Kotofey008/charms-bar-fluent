@@ -6,11 +6,11 @@
 "Your most unhappy customers are your greatest source of learning."<br />— Bill Gates
 </blockquote>
 
-[![GitHub release](https://img.shields.io/github/release/Icepenguins101/charms-bar-port/all.svg)](https://github.com/Icepenguins101/charms-bar-port/releases)
-[![Github all releases](https://img.shields.io/github/downloads/Icepenguins101/charms-bar-port/total.svg)](https://github.com/Icepenguins101/charms-bar-port/releases)
-[![GitHub stars](https://img.shields.io/github/stars/Icepenguins101/charms-bar-port.svg)](https://github.com/Icepenguins101/charms-bar-port/stargazers)
-[![Documentation](https://img.shields.io/badge/Docs-WIP-red.svg)](https://github.com/Icepenguins101/charms-bar-port/wiki)
-[![Issues](https://img.shields.io/github/issues/Icepenguins101/charms-bar-port.svg)](https://github.com/Icepenguins101/charms-bar-port/issues)
+[![GitHub release](https://img.shields.io/github/release/Kotofey008/charms-bar-fluent/all.svg)](https://github.com/Kotofey008/charms-bar-fluent/releases)
+[![Github all releases](https://img.shields.io/github/downloads/Kotofey008/charms-bar-fluent/total.svg)](https://github.com/Kotofey008/charms-bar-fluent/releases)
+[![GitHub stars](https://img.shields.io/github/stars/Kotofey008/charms-bar-fluent.svg)](https://github.com/Kotofey008/charms-bar-fluent/stargazers)
+[![Documentation](https://img.shields.io/badge/Docs-WIP-red.svg)](https://github.com/Kotofey008/charms-bar-fluent/wiki)
+[![Issues](https://img.shields.io/github/issues/Kotofey008/charms-bar-fluent.svg)](https://github.com/Kotofey008/charms-bar-fluent/issues)
 
 ## Contents
 - [About](#about)
@@ -25,31 +25,38 @@
 - [Support](#support)
   
 ## About
-<b>Charms Bar Port</b> will help you bring back the Windows 8.x Charms Bar to Windows 10 and Windows 11, using real files from Windows 8.x to enhance your Windows environment and relive the Windows 8.x days. As the name suggests, it's a 1:1 conversion of the infamous Charms Bar with new features and hotfixes from the original.
+<b>Charms Bar Fluent</b> is a Windows 11 Mica/Fluent-inspired fork of the classic Windows 8.x Charms Bar, designed to feel more native on modern Windows systems while preserving the familiar behavior and look of the original design. It brings the iconic Charms Bar experience back to Windows 10 and Windows 11 with a refreshed visual style that fits naturally into a Mica-based desktop environment.
 
-Forked and completely edited from <a href="https://github.com/Jerhynh/CharmsBarRevived">CharmsBarRevived</a>, <b>Charms Bar Port</b> will assist on helping any Charms Bar fan make the jump from Windows 8.1 to Windows 10 or Windows 11, without having to stay on the obsolete operating system forever...
+This project is a fork from the original repository, <a href="https://github.com/Icepenguins101/charms-bar-port">Charms Bar Port</a>, with enhancements focused on making the Windows 8/8.1 experience feel more at home on Windows 11 through Fluent styling, modern colors, and closer visual integration with the OS.
 
 ## Why was this created?
-As you may already know, Microsoft made the annoucement to completely kill off the Charms Bar in Windows 10 in December 17, 2014. There used to be ways to restore it in the old days using ValiiNet Charms, PopCharms, RocketDock, etc.
+As you may know, the Icepenguins101's Charms Bar Port haven't recieved any update since ~2024 and have never got any release package. That was not good at all since there's no any good alternative to it, that would've been acively maintained.
 
+Why wouldn't I just fork, build and use it for myself only? Because Icepenguins101 made CharmsMenu and CharmsClock the way that my OpenGlass couldn't the fetch and make Charms Bar look <i>✨aero✨</i>.
 
-ValiNet Charms as of 2025 is no longer available to download, PopCharms was only meant to be used between Windows 10 build 9780 and Windows 10 build 9913, and RocketDock is <b>very</b> outdated, so I created this project primarily to bring my needs of a Charms Bar back.
+For these reasons I've decided to make Charms Bar look and feel native on Windows 11. Yeah, that simple.
 
 ## How does it work?
-On touch screens, swipe from the right edge towards to bring up the Charms Bar. If you're a mouse user, swipe to the top right corner and drag your cursor down to open the Charms Bar. You can also use the keyboard shortcut Windows key + C, just like it was on Windows 8.x. Included in the Charms Bar are:
+On touch screens, you should be able to swipe from the right edge towards to bring up the Charms Bar. If you're a mouse user, swipe to the top right corner and drag your cursor down to open the Charms Bar. You can also use the keyboard shortcut Windows key + C, just like it was on Windows 8.x (but I've temporarly disabled it, sorry). Included in the Charms Bar are:
 <br />
 <br />
-<b>Search:</b> Opens the search bar from the taskbar on Win32 programs (easily remappable to function as <a href="https://github.com/srwi/EverythingToolbar">EverythingToolbar</a>, perhaps maybe even more programs that support hotkeys), or on supported Metro apps, brings their Search charm.<br />
+<b>Search:</b> Opens the search bar from the taskbar on Win32 programs (easily remappable to function as <a href="https://github.com/srwi/EverythingToolbar">EverythingToolbar</a>, perhaps maybe even more programs that support hotkeys), or on supported Metro/UWP apps, brings their Search charm.<br />
 <b>Share:</b> Opens the share charm.<br />
 <b>Start:</b> Opens the start menu/screen. If you are using <a href="https://github.com/Open-Shell/Open-Shell-Menu">Open-Shell</a>, you can remap this button to open up their start menu instead or to completely disable its functionality.<br />
 <b>Devices:</b> Opens the Connect charm. On supported Metro apps, they will open the print dialog.<br />
 <b>Settings:</b> Opens the Settings Metro app on Win32 programs or the Settings charm on supported Metro apps.
 
 ## Requirements
-* Windows 10 or Windows 11
+* <b>Windows 11</b> (recommended) or Windows 10
 * <a href="https://dotnet.microsoft.com/en-us/download/dotnet/7.0">.NET 7.0</a>
 
 ## Features
+### New:
+* Native DWM window rendering
+* Fully supports DWMBlurGlass and OpenGlass
+* Mica by default! (only on Windows 11)
+</br>
+### Already included:
 * Powered by Visual Studio 2022
 * Based on Windows 8.1 Update 3
 * Formatting-aware (uses the OS' time and date formats. If you are using 24-hour and/or date formats like "MM/DD/YYYY", Charms Bar Port will use that format. Custom formats not supported yet)
@@ -59,7 +66,7 @@ On touch screens, swipe from the right edge towards to bring up the Charms Bar. 
 * Supports Windows 8.x-era registry keys
 * Supports high contrast and light/dark mode preferences
 * Fully animated to emulate Windows 8.x (can be disabled in the OS settings)
-* Multi-monitor support (please read <a href="https://raw.githubusercontent.com/Icepenguins101/charms-bar-port/main/resource/helpwanted.txt">this</a>)
+* Multi-monitor support (please read <a href="https://raw.githubusercontent.com/Kotofey008/charms-bar-fluent/main/resource/helpwanted.txt">this</a>)
 * Touch-friendly
 * Customizable panels (can be removed through the Registry Editor)
 * Fully designable: includes a Windows 7 Metro concept, Windows 8 Developer Preview, Windows 8.1 Update 3, Windows 11 Metro concept and Windows 11 Fluent concept styles by default, or you can define your custom theme instead.
@@ -68,23 +75,20 @@ On touch screens, swipe from the right edge towards to bring up the Charms Bar. 
 
 ## Supported languages
 * English
-* German (Deutsch) (will be added in the next major update)
-* Japanese (日本語) (will be added in the next major update)
 * Russian (русский) (will be added in the next major update)
-* Portuguese (Português) (will be added in the next major update)
-* Italian (Italiano) (will be added in the next major update)
+<br> I don't know any other language, so there'll be only these two.
 
-## Screenshots
+## Screenshots (OLD | MUST BE UPDATED)
 <img src="resource/preview.png"/>
 <img src="resource/previewdark.png"/>
 <img src="resource/previewhighcontrast.png"/>
 
 ## Download
-Downloads are coming soon in the near future
+[GitHub Releases](https://github.com/Kotofey008/charms-bar-fluent/releases)
 
 ## Q&As
-Q: Are forked repositories the complete edition of Charms Bar Port?<br />
-A: No. They are DEVELOPER builds, as the developer builds are not meant to be used as final products. Charms Bar Port's official release may take some time when I fix every problem associated with it.
+Q: Is this repository the complete edition of Charms Bar Port?<br />
+A: No. This project is IN DEVELOPMENT and should not be used by inexperienced users and on daily basis.
 <br />
 <br />
 Q: How can I disable the Charms Bar hot corners without closing the program?<br />
@@ -94,9 +98,9 @@ A: This requires fiddling with the registry. I am not responsible if you mess up
 2. Under the ImmersiveShell key, create a new key called EdgeUI.
 3. Now select the newly created key “EdgeUI” and in the right-side pane, create two new DWORDs named <b>DisableTRCorner</b> and <b>DisableBRCorner</b> and set their values to 1. Alternatively, select the newly created key “EdgeUI” and in the right-side pane, create a new DWORD named <b>DisableCharmsHint</b> and set the value to 1.
 4. That’s it. It’ll immediately disable the Charms Bar hot corners. You do not need to log off or restart the system. If you want to revert the change, set the values of <b>DisableTRCorner</b> and <b>DisableBRCorner</b> or <b>DisableCharmsHint</b>, to 0 or delete the <b>DisableTRCorner</b> and <b>DisableBRCorner</b>, or <b>DisableCharmsHint</b> DWORDs.
-<br />
+<br /></ol>
 Q: When will this be released?<br />
-A: Be patient. Charms Bar Port will be released as soon as possible when I have all the time to finalize everything and fix some critical bugs.
+A: Beta "releases" are already available on [Github Releases](https://github.com/Kotofey008/charms-bar-fluent/releases). This is not a stable release, keep that in mind.
 <br />
 <br />
 Q: I'm using a touch screen, why does the Action Center always open with the charms bar?<br />
@@ -147,34 +151,34 @@ A: This is a hardware specific problem. I'm planning to outsource this program t
 <br />
 <br />
 Q: Can I fork this repository to release your work now?<br />
-A: No. You can only fork it to make changes and released developer builds are not to be used for local purposes. There will be bugs on your repository and isn't stable for personal use yet.
+A: Of course yes. Keep in mind that Icepenguins101 answered with "No." on this question. I don't care about that anyway ^^
 <br />
 <br />
 Q: Will you do more ports from Windows 8.1?<br />
-A: I really would love to make more ports from Windows 8.1 as I'm considering to make an App Switcher and Start Screen ports, but I would really need assistance for the start screen port to replace the default Windows start menu (or screen, if you're in 10 with the "fullscreen Start" option switched on).
+A: Honestly, I'd at least try to port hot-corners (real ones with cool-looking animations) and Start Screen to Windows 11. Mayne, I'll do that in the future.
 <br />
 <br />
-Q: Will there be a version for Mac OS X and Linux?<br />
-A: <b>No.</b> Microsoft owns full ownership of the charms bar and it would be infringement to create Charms Bar Port on those systems.
+Q: Will there be a version for macOS, Linux and HaikuOS?<br />
+A: <b>Maybe.</b> You see, I'm bad af in coding. I <i>could try</i> to port it to macOS, but I'll most definitely never port it to Linux because it's too difficult. HaikuOS port soon™
 <br />
 <br />
 Q: How can I contact you?<br />
-A: You can <a href="mailto:jaydenwmontoya@icloud.com">email me</a> for any assistance regarding Charms Bar Port and other products I have created.
+A: You can <a href="mailto:contact@mail.0nl.ru">email me</a> for any assistance regarding Charms Bar Port and other products I have created.
 
 ## Disclaimer
-I'm not officially affiliated with Microsoft; I moved to Mac OS X in March 3rd of 2017 for better stability and UI, and have temporarily returned to Windows 10 for better performance using web development with the announcement of macOS Sonoma. I will still be using Mac OS X as a daily driver, so there may not be enough focus given to Charms Bar Port.
+Me (Kotik-ocelotik / Kotofey008) and Charms Bar Fluent are not an official Windows product and not in any way affiliated with Microsoft; Windows® is a registered trademark of Microsoft Corporation.
 
 ## Support
 Are you a fan of the Charms Bar Port program and want to help out? here are some options...
 
 #### Programmer
-Code contributions are welcome. If you are able to port Windows 8.1 features better than I can, or if you want to improve some features (especially multi-monitor support), please <a href="mailto:jaydenwmontoya@icloud.com">email me</a>.
+Code contributions are welcome. If you are able to port Windows 8.1 features better than I can, or if you want to improve some features (especially multi-monitor support), please <a href="mailto:contact@mail.0nl.ru">email me</a>.
 
 #### Localization
-Help translate Charms Bar Port to more languages. If there's a language that isn't present in Charms Bar Port please <a href="mailto:jaydenwmontoya@icloud.com">email me</a>.
+Help translate Charms Bar Port to more languages. If there's a language that isn't present in Charms Bar Port please <a href="mailto:contact@mail.0nl.ru">email me</a>.
 
 #### Suggestions & Bug Report
-Suggest new features or file bug reports to improve Charms Bar Port, [learn more...](https://github.com/Icepenguins101/charms-bar-port/issues)
+Suggest new features or file bug reports to improve Charms Bar Port, [learn more...](https://github.com/Kotofey008/charms-bar-fluent/issues)
 
 #### Spread the word
 Star this repository, leave a review of the program anywhere on your website or share it to others that want the Windows 8.x experience back!
