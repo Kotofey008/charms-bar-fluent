@@ -29,12 +29,15 @@ namespace CharmsBarPort
         public static BackdropType Default = BackdropType.Mica;
 
         // DwmSetWindowAttribute ids
+        private const int DWMWA_NCRENDERING_POLICY = 2;
+        private const int DWMNCRP_ENABLED = 2;
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
         private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
         private const int DWMWA_BORDER_COLOR = 34;
         private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
 
         private const int DWMWCP_DONOTROUND = 1;
+        private const int DWMWCP_ROUND = 2;
         private const uint DWMWA_COLOR_NONE = 0xFFFFFFFE;
 
         private const int MinBuildForSystemBackdrop = 22621; // Windows 11 22H2
@@ -150,10 +153,15 @@ namespace CharmsBarPort
 
             if (!IsSupported) return;
 
+            // Borderless (WS_POPUP) windows are not given a DWM frame by default, so the extended frame / backdrop
+            // would have nothing to draw into. Force DWM non-client rendering on.
+            int ncPolicy = DWMNCRP_ENABLED;
+            DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, ref ncPolicy, sizeof(int));
+
             int dark = IsLightTheme ? 0 : 1;
             DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref dark, sizeof(int));
 
-            int corner = roundedCorners ? 0 : DWMWCP_DONOTROUND;
+            int corner = roundedCorners ? DWMWCP_ROUND : DWMWCP_DONOTROUND;
             DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref corner, sizeof(int));
 
             // No 1px accent border: the charms are a flat, edge-docked surface.

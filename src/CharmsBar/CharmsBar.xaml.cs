@@ -308,7 +308,49 @@ namespace CharmsBarPort
             this.KeyDown += new System.Windows.Input.KeyEventHandler(MainWindow_KeyDown);
             System.Windows.Forms.Application.ThreadException += new ThreadExceptionEventHandler(CharmsBar.Form1_UIThreadException);
             InitializeComponent();
-            winMask = MetroColor.OpacityMask;   // logo-shaped accent mask from the XAML (see ApplyFluentChrome)
+        }
+
+        // ---- native helpers: cursor position and layout-independent keys --------------------------------------
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CursorPoint { public int X; public int Y; }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out CursorPoint point);
+
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
+        private const int VK_ESCAPE = 0x1B;
+        private const int VK_SHIFT = 0x10;
+        private const int VK_CONTROL = 0x11;
+        private const int VK_MENU = 0x12;     // Alt
+        private const int VK_LWIN = 0x5B;
+        private const int VK_RWIN = 0x5C;
+        /// <summary>The physical "[ {" key (US layout "[", Russian layout "Х"). A virtual-key code, not a character.</summary>
+        private const int VK_OEM_4 = 0xDB;
+
+        private static bool IsKeyDownGlobal(int vk)
+        {
+            return (GetAsyncKeyState(vk) & 0x8000) != 0;
+        }
+
+        private bool shortcutWasDown = false;
+        /// <summary>True for exactly one timer tick when the [ { key goes down (opens the bar in keyboard mode).</summary>
+        private bool shortcutPressed = false;
+
+        private void PollShortcutKey()
+        {
+            bool down = IsKeyDownGlobal(VK_OEM_4)
+                        && !IsKeyDownGlobal(VK_CONTROL) && !IsKeyDownGlobal(VK_MENU)
+                        && !IsKeyDownGlobal(VK_LWIN) && !IsKeyDownGlobal(VK_RWIN);   // Shift is allowed ("{")
+            shortcutPressed = down && !shortcutWasDown;
+            shortcutWasDown = down;
+        }
+
+        /// <summary>Real OS activation is only wanted in keyboard mode; hot-corner use never steals focus.</summary>
+        protected override bool ActivationAllowed
+        {
+            get { return keyboardShortcut; }
         }
 
         void MainWindow_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -390,6 +432,13 @@ private string GetActiveWindowTitle()
 
         protected override void OnDeactivated(EventArgs e)
         {
+            if (keyboardShortcut == true)
+            {
+                // Opened with the keyboard: clicking elsewhere must not dismiss it. Only Esc or a charm command does.
+                base.OnDeactivated(e);
+                return;
+            }
+
             if (useAnimations == false)
             {
                 swipeIn = false;
@@ -547,7 +596,6 @@ private string GetActiveWindowTitle()
         // High contrast keeps its own, unchanged code path.
         // ------------------------------------------------------------------------------------------
         private int chromeTheme = -1;
-        private Brush winMask;
 
         private static Brush Frozen(string hex)
         {
@@ -570,6 +618,18 @@ private string GetActiveWindowTitle()
         private static readonly Brush lightHover = Frozen("#14000000");
         private static readonly Brush lightDown = Frozen("#26000000");
         private static readonly Brush lightText = Frozen("#505050");
+
+        /// <summary>
+        /// Background of the bar window itself while the charms are in use. With a system backdrop it must stay
+        /// transparent (an opaque WPF background would completely cover Mica); only the legacy fallback and
+        /// High Contrast paint a solid surface.
+        /// </summary>
+        private Brush WindowSurfaceBrush()
+        {
+            if (SystemParameters.HighContrast) return SystemColors.WindowBrush;
+            return Backdrop.IsActive ? Brushes.Transparent : legacySurface;
+        }
+        private static readonly Brush legacySurface = Frozen("#FF111111");
 
         private static int CurrentChromeState()
         {
@@ -623,8 +683,6 @@ private string GetActiveWindowTitle()
             DevicesDown.Background = down;
             SettingsDown.Background = down;
 
-            if (MetroColor.OpacityMask == null) MetroColor.OpacityMask = winMask;
-
             // Icons only change when the theme (or high contrast) changes, not every tick.
             if (state != chromeTheme)
             {
@@ -644,7 +702,7 @@ private string GetActiveWindowTitle()
 
         private void SetBackgroundColor()
         {
-            MetroColor.Background = SystemParameters.WindowGlassBrush;
+            WinAccent.Fill = SystemParameters.WindowGlassBrush;
         }
 
         private void SystemParameters_StaticPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1069,6 +1127,8 @@ private string GetActiveWindowTitle()
         {
             dispatcher.BeginInvoke((Action)(() =>
             {
+                PollShortcutKey();
+
                 if (this.IsActive == false && charmsAppear == false)
                 {
                     IntPtr handle = GetForegroundWindow();
@@ -1548,10 +1608,14 @@ private string GetActiveWindowTitle()
                 int elevenheight = 0;
                 int elevenX = 0;
 
-                Mouse.Capture(this, CaptureMode.SubTree);
-                Point pointToWindow = Mouse.GetPosition(this);
-                Point pointToScreen = PointToScreen(pointToWindow);
-                Mouse.Capture(null, CaptureMode.SubTree);
+                // The cursor used to be read by capturing the mouse for this window every 15 ms
+                // (Mouse.Capture + Mouse.GetPosition + PointToScreen). That (a) only works while this window is
+                // visible - hidden, it returned (0,0) and the hot corners never fired - and (b) steals clicks
+                // from the application underneath. GetCursorPos reads the same physical-pixel position without
+                // touching any window.
+                CursorPoint cursorNow;
+                GetCursorPos(out cursorNow);
+                Point pointToScreen = new Point(cursorNow.X, cursorNow.Y);
 
 
                 Grid.SetRow(SearchBG, 3);
@@ -2222,7 +2286,7 @@ private string GetActiveWindowTitle()
                     WinFader.Source = new BitmapImage(new Uri(@"/Assets/Images/fader light.png", UriKind.Relative));
                 }
 
-                if (Keyboard.IsKeyDown(Key.LWin) && Keyboard.IsKeyDown(Key.C) && keyboardShortcut == false)
+                if (shortcutPressed && keyboardShortcut == false)
                 {
                     pokeCharms = true;
                     charmsAppear = true;
@@ -2234,7 +2298,7 @@ private string GetActiveWindowTitle()
                     ActivateShell();
                 }
 
-                if (Keyboard.IsKeyDown(Key.RWin) && Keyboard.IsKeyDown(Key.C) && keyboardShortcut == false)
+                if (false && keyboardShortcut == false)   // right-Win variant removed: the shortcut is now the [ { key
                 {
                     pokeCharms = true;
                     charmsAppear = true;
@@ -2495,7 +2559,7 @@ private string GetActiveWindowTitle()
 
                     if (useAnimations == true)
                     {
-                        if (charmsAppear == true && numVal < mainwidth - 116 && keyboardShortcut == false && activeScreen == 0 || charmsAppear == true && numVal < screenwidth - 116 && keyboardShortcut == false && activeScreen > 0 || charmsAppear == true && keyboardShortcut == true && this.IsActive == false || charmsAppear == true && keyboardShortcut == true && escKey == true || ignoreMouseIn == true && pokeCharms == true || outofTime == true && pokeCharms == true || forceClose == true)
+                        if (charmsAppear == true && numVal < mainwidth - 116 && keyboardShortcut == false && activeScreen == 0 || charmsAppear == true && numVal < screenwidth - 116 && keyboardShortcut == false && activeScreen > 0 || charmsAppear == true && keyboardShortcut == true && escKey == true || ignoreMouseIn == true && pokeCharms == true || outofTime == true && pokeCharms == true || forceClose == true)
                         {
                             IHOb -= 0.141;
                             SearchCharmInactive.Opacity = IHOb;
@@ -2508,7 +2572,7 @@ private string GetActiveWindowTitle()
 
                     if (useAnimations == false)
                     {
-                        if (charmsAppear == true && numVal < mainwidth - 116 && keyboardShortcut == false && activeScreen == 0 || charmsAppear == true && numVal < screenwidth - 116 && keyboardShortcut == false && activeScreen > 0 || charmsAppear == true && keyboardShortcut == true && this.IsActive == false || charmsAppear == true && keyboardShortcut == true && escKey == true || ignoreMouseIn == true && pokeCharms == true || outofTime == true && pokeCharms == true || forceClose == true)
+                        if (charmsAppear == true && numVal < mainwidth - 116 && keyboardShortcut == false && activeScreen == 0 || charmsAppear == true && numVal < screenwidth - 116 && keyboardShortcut == false && activeScreen > 0 || charmsAppear == true && keyboardShortcut == true && escKey == true || ignoreMouseIn == true && pokeCharms == true || outofTime == true && pokeCharms == true || forceClose == true)
                         {
                             IHOb = 0.00;
                             SearchCharmInactive.Opacity = IHOb;
@@ -3459,21 +3523,21 @@ private string GetActiveWindowTitle()
                     {
                         WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
                         var brush = (Brush)converter.ConvertFromString("#444444");
-                        FadeBlocker.Background = brush;
+                        // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     }
 
                     if (WinHover.Visibility == Visibility.Visible && WinDown.Visibility != Visibility.Visible && SystemParameters.HighContrast == false)
                     {
                         WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Hover.png", UriKind.Relative));
                         var brush = (Brush)converter.ConvertFromString("#333333");
-                        FadeBlocker.Background = brush;
+                        // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     }
 
                     if (WinHover.Visibility != Visibility.Visible && WinDown.Visibility != Visibility.Visible && SystemParameters.HighContrast == false)
                     {
                         WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
                         var brush = (Brush)converter.ConvertFromString("#111111");
-                        FadeBlocker.Background = brush;
+                        // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     }
 
                     if (charmsUse == false)
@@ -3995,8 +4059,7 @@ private string GetActiveWindowTitle()
                     {
                         if (SystemParameters.HighContrast == false)
                         {
-                            var brush = (Brush)converter.ConvertFromString("#ff111111");
-                            Background = brush;
+                            Background = WindowSurfaceBrush();
                         }
                         else
                         {
@@ -4044,7 +4107,7 @@ private string GetActiveWindowTitle()
                 }
 
                 //activate without the animations...
-                if (charmsActivate == true && useAnimations == false || Keyboard.IsKeyDown(Key.LWin) && Keyboard.IsKeyDown(Key.C) && useAnimations == false || Keyboard.IsKeyDown(Key.RWin) && Keyboard.IsKeyDown(Key.C) && useAnimations == false)
+                if (charmsActivate == true && useAnimations == false || shortcutPressed && useAnimations == false)
                 {
                     this.Focus();
                     this.Activate();
@@ -4061,8 +4124,7 @@ private string GetActiveWindowTitle()
 
                     if (SystemParameters.HighContrast == false)
                     {
-                        var brush = (Brush)converter.ConvertFromString("#ff111111");
-                        Background = brush;
+                        Background = WindowSurfaceBrush();
                     }
                     else
                     {
@@ -4104,7 +4166,7 @@ private string GetActiveWindowTitle()
                     DevicesCharmInactive.Visibility = Visibility.Hidden;
                     SettingsCharmInactive.Visibility = Visibility.Hidden;
 
-                    if (Keyboard.IsKeyDown(Key.LWin) && Keyboard.IsKeyDown(Key.C) || Keyboard.IsKeyDown(Key.RWin) && Keyboard.IsKeyDown(Key.C))
+                    if (shortcutPressed)
                     {
 
                         FadeBlocker.Opacity = 1.0;
@@ -4176,7 +4238,7 @@ private string GetActiveWindowTitle()
                 }
 
                 //activate with the animations!!
-                if (charmsActivate == true && useAnimations == true || Keyboard.IsKeyDown(Key.LWin) && Keyboard.IsKeyDown(Key.C) && useAnimations == true || Keyboard.IsKeyDown(Key.RWin) && Keyboard.IsKeyDown(Key.C) && useAnimations == true)
+                if (charmsActivate == true && useAnimations == true || shortcutPressed && useAnimations == true)
                 {
                     this.Focus();
                     this.Activate();
@@ -4198,8 +4260,7 @@ private string GetActiveWindowTitle()
                     {
                         if (SystemParameters.HighContrast == false)
                         {
-                            var brush = (Brush)converter.ConvertFromString("#ff111111");
-                            Background = brush;
+                            Background = WindowSurfaceBrush();
                         }
                         else
                         {
@@ -4243,7 +4304,7 @@ private string GetActiveWindowTitle()
                     DevicesCharmInactive.Visibility = Visibility.Hidden;
                     SettingsCharmInactive.Visibility = Visibility.Hidden;
 
-                    if (Keyboard.IsKeyDown(Key.LWin) && Keyboard.IsKeyDown(Key.C) || Keyboard.IsKeyDown(Key.RWin) && Keyboard.IsKeyDown(Key.C))
+                    if (shortcutPressed)
                     {
                         FadeBlocker.Opacity = 1.0;
                         if (activeIcon == 6)
@@ -4348,7 +4409,7 @@ private string GetActiveWindowTitle()
                     charmsUse = true;
                 }
 
-                if (Keyboard.IsKeyDown(Key.Escape) && charmsUse == true)
+                if (IsKeyDownGlobal(VK_ESCAPE) && charmsUse == true)
                 {
                     if (useAnimations == false)
                     {
@@ -4418,14 +4479,14 @@ private string GetActiveWindowTitle()
                     FadeBlocker.Visibility = Visibility.Visible;
                     CharmBorder.Visibility = Visibility.Hidden;
                     CharmBorder.Background = (Brush)converter.ConvertFromString("#111111");
-                    if (MetroColor.Background.ToString() == "#00000000")
+                    if (WinAccent.Fill.ToString() == "#00000000")
                     {
                         SearchCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Search.png", UriKind.Relative));
                         ShareCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Share.png", UriKind.Relative));
                         WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
                         DevicesCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Devices.png", UriKind.Relative));
                         SettingsCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Settings.png", UriKind.Relative));
-                        MetroColor.Background = SystemParameters.WindowGlassBrush;
+                        WinAccent.Fill = SystemParameters.WindowGlassBrush;
                     }
                     ApplyFluentChrome();
                 }
@@ -4443,7 +4504,6 @@ private string GetActiveWindowTitle()
                     SettingsText.Foreground = SystemColors.WindowTextBrush;
                     CharmBG.Background = SystemColors.WindowBrush;
                     chromeTheme = -1;
-                    if (MetroColor.OpacityMask != null) MetroColor.OpacityMask = null;
                     System.Drawing.Color col = System.Drawing.ColorTranslator.FromHtml(SystemColors.WindowBrush.ToString());
                     if (col.R * 0.2126 + col.G * 0.7152 + col.B * 0.0722 < 255 / 2)
                     {
@@ -4464,7 +4524,7 @@ private string GetActiveWindowTitle()
                         SettingsCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/SettingsDark.png", UriKind.Relative));
                     }
 
-                    MetroColor.Background = (Brush)converter.ConvertFromString("#00000000");
+                    WinAccent.Fill = (Brush)converter.ConvertFromString("#00000000");
                     SearchHover.Background = SystemColors.HighlightBrush;
                     ShareHover.Background = SystemColors.HighlightBrush;
                     WinHover.Background = SystemColors.HighlightBrush;
@@ -4684,7 +4744,7 @@ private string GetActiveWindowTitle()
             {
                 WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
                 var brush = (Brush)converter.ConvertFromString("#444444");
-                FadeBlocker.Background = brush;
+                // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Visible;
                 WinHover.Visibility = Visibility.Hidden;
             }
@@ -4724,7 +4784,7 @@ private string GetActiveWindowTitle()
             {
                 WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
                 var brush = (Brush)converter.ConvertFromString("#111111");
-                FadeBlocker.Background = brush;
+                // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Hidden;
                 WinHover.Visibility = Visibility.Hidden;
             }
@@ -4828,7 +4888,7 @@ private string GetActiveWindowTitle()
             {
                 WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
                 var brush = (Brush)converter.ConvertFromString("#444444");
-                FadeBlocker.Background = brush;
+                // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Visible;
             }
 
@@ -4931,7 +4991,7 @@ private string GetActiveWindowTitle()
             {
                 WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Hover.png", UriKind.Relative));
                 var brush = (Brush)converter.ConvertFromString("#333333");
-                FadeBlocker.Background = brush;
+                // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinHover.Visibility = Visibility.Visible;
             }
 
@@ -4939,7 +4999,7 @@ private string GetActiveWindowTitle()
             {
                 WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
                 var brush = (Brush)converter.ConvertFromString("#444444");
-                FadeBlocker.Background = brush;
+                // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Visible;
             }
 
@@ -4966,7 +5026,7 @@ private string GetActiveWindowTitle()
                 {
                     WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
                     var brush = (Brush)converter.ConvertFromString("#111111");
-                    FadeBlocker.Background = brush;
+                    // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     WinDown.Visibility = Visibility.Hidden;
                 }
 
@@ -4974,14 +5034,14 @@ private string GetActiveWindowTitle()
                 {
                     WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
                     var brush = (Brush)converter.ConvertFromString("#444444");
-                    FadeBlocker.Background = brush;
+                    // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 }
 
                 if (CharmsHover.Content == "False" && System.Windows.Forms.Control.MouseButtons == MouseButtons.Left && SystemParameters.HighContrast == false)
                 {
                     WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
                     var brush = (Brush)converter.ConvertFromString("#111111");
-                    FadeBlocker.Background = brush;
+                    // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     WinDown.Visibility = Visibility.Hidden;
                 }
 
@@ -5135,7 +5195,7 @@ private string GetActiveWindowTitle()
             devicesActive = false;
             settingsActive = false;
 
-            if (this.IsActive == false && charmsUse == true && twoInputs == false)
+            if (this.IsActive == false && charmsUse == true && twoInputs == false && keyboardShortcut == false)
             {
                 if (useAnimations == false)
                 {
@@ -5165,7 +5225,7 @@ private string GetActiveWindowTitle()
                 }
             }
 
-            if (this.IsActive == false && charmsUse == true && twoInputs == false)
+            if (this.IsActive == false && charmsUse == true && twoInputs == false && keyboardShortcut == false)
             {
                 charmsUse = false;
                 if (useAnimations == false)
@@ -5175,7 +5235,7 @@ private string GetActiveWindowTitle()
                 }
             }
 
-            if (this.IsActive == false && charmsUse == true && twoInputs == true)
+            if (this.IsActive == false && charmsUse == true && twoInputs == true && keyboardShortcut == false)
             {
                 charmsUse = false;
                 if (useAnimations == false)

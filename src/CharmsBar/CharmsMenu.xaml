@@ -47,11 +47,12 @@
 
 
         <StackPanel Name="WinBG" Grid.Row="5" Background="Transparent" Margin="0,0,0,0" VerticalAlignment="Bottom" UseLayoutRounding="True" SnapsToDevicePixels="True" Height="60">
-            <StackPanel Name="MetroColor" Background="{x:Static SystemParameters.WindowGlassBrush}" Margin="5,0,0,0" HorizontalAlignment="Left" SnapsToDevicePixels="True" Height="30" Width="39" ClipToBounds="True">
-                <StackPanel.OpacityMask>
-                    <ImageBrush ImageSource="/Assets/Images/Windows8MenuMask.png" Stretch="Fill"/>
-                </StackPanel.OpacityMask>
-                <Image Name="WinCharm" Source="/Assets/Images/Windows8.png" HorizontalAlignment="Left" VerticalAlignment="Top" Height="45" Width="45" Margin="0,-3,0,0" Visibility="Visible" UseLayoutRounding="True" SnapsToDevicePixels="True"/>
+            <StackPanel Name="MetroColor" Background="Transparent" Margin="5,0,0,0" HorizontalAlignment="Left" SnapsToDevicePixels="True" Height="30" Width="39">
+                <!-- Accent-coloured Windows logo, clipped to the four panes (the old opaque plate image is gone). -->
+                <Grid Name="WinAccentHost" HorizontalAlignment="Left" VerticalAlignment="Top" Width="45" Height="45" Margin="0,-3,0,0" IsHitTestVisible="False"
+                      Clip="M 21.29,12.38 L 33.99,10.69 L 33.91,21.38 L 21.46,21.38 Z M 10.85,13.58 L 20.25,12.62 L 20.09,21.38 L 10.61,21.29 Z M 10.85,22.34 L 20.01,22.34 L 20.25,31.10 L 10.61,29.97 Z M 21.54,22.34 L 33.83,22.34 L 33.99,33.03 L 21.46,31.50 Z">
+                    <Rectangle Name="WinAccent" Fill="{x:Static SystemParameters.WindowGlassBrush}"/>
+                </Grid>
             </StackPanel>
         </StackPanel>
 

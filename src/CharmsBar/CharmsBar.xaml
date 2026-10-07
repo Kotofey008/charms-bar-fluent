@@ -107,14 +107,16 @@
         </StackPanel>
 
         <StackPanel Name="WinBG" Height="100" Background="#00ffffff" UIElement.MouseLeave="Win_MouseLeave" UIElement.MouseEnter="Win_MouseEnter" UIElement.PreviewMouseLeftButtonUp="Win_MouseUp" UIElement.PreviewMouseLeftButtonDown="Win_MouseDown" Margin="0,-49,0,24" Grid.Row="6" Width="98" UseLayoutRounding="True" SnapsToDevicePixels="True">
-            <Grid Name="MetroColor" Background="{x:Static SystemParameters.WindowGlassBrush}" VerticalAlignment="Top" Width="70" Height="54" Margin="0,11,12,4" Opacity="0.0" Visibility="Hidden" ClipToBounds="True" UseLayoutRounding="True" SnapsToDevicePixels="True">
+            <Grid Name="MetroColor" Background="Transparent" VerticalAlignment="Top" Width="70" Height="54" Margin="0,11,12,4" Opacity="0.0" Visibility="Hidden" UseLayoutRounding="True" SnapsToDevicePixels="True">
                 <!-- The Windows logo used to be a hole in an opaque #111 plate (Windows8.png) through which the accent
-                     colour showed. The plate is now transparent (Mica shows through) and the accent is clipped to the
-                     logo shape with this mask instead. Pre-rendered at exactly the size of this grid (70x54). -->
-                <Grid.OpacityMask>
-                    <ImageBrush ImageSource="/Assets/Images/Windows8Mask.png" Stretch="Fill"/>
-                </Grid.OpacityMask>
-                <Image Name="WinFader" Source="/Assets/Images/fader.png" VerticalAlignment="Center" Height="139" Width="287" Margin="0,0,0,0" Visibility="Visible"/>
+                     colour showed. The plate is now transparent (Mica shows through) and the accent colour (plus the
+                     sliding fader) is clipped to the four logo panes with a vector Clip. The host has exactly the size
+                     and position the plate image had (80.31 x 82, centred), so the logo sits where it always did. -->
+                <Grid Name="WinAccentHost" HorizontalAlignment="Center" VerticalAlignment="Center" Width="80.31" Height="82" IsHitTestVisible="False"
+                      Clip="M 38.00,22.55 L 60.66,19.48 L 60.52,38.95 L 38.29,38.95 Z M 19.36,24.75 L 36.14,22.99 L 35.85,38.95 L 18.93,38.80 Z M 19.36,40.71 L 35.71,40.71 L 36.14,56.67 L 18.93,54.62 Z M 38.43,40.71 L 60.38,40.71 L 60.66,60.18 L 38.29,57.40 Z">
+                    <Rectangle Name="WinAccent" Fill="{x:Static SystemParameters.WindowGlassBrush}"/>
+                    <Image Name="WinFader" Source="/Assets/Images/fader.png" VerticalAlignment="Center" Height="139" Width="287" Margin="0,0,0,0" Visibility="Visible"/>
+                </Grid>
                 <StackPanel Name="FadeBlocker" Background="Transparent" Margin="-80,0,0,0" Width="10" Opacity="0.0" Grid.Row="6">
                 </StackPanel>
                 <Image Name="WinCharm" Source="/Assets/Images/Windows8.png" Stretch="Fill" HorizontalAlignment="Center" VerticalAlignment="Center" Height="82" Width="80.31" Opacity="0.0" Margin="0,0,0,0" Visibility="Hidden" UseLayoutRounding="True" SnapsToDevicePixels="True"/>

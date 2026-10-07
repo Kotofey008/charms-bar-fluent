@@ -35,6 +35,9 @@ namespace CharmsBarPort
 {
     public partial class CharmsClock : ShellWindow
     {
+        // The clock floats (it does not touch a screen edge), so it gets the Windows 11 rounded corners.
+        protected override bool RoundedCorners => true;
+
         public BackgroundWorker CheckSignal = new BackgroundWorker();
         public Microsoft.Win32.RegistryKey localKey = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
         public int isAirPlaneOn = 0;
@@ -58,7 +61,7 @@ namespace CharmsBarPort
             Top = dispHeight - 188;
             BrushConverter converter = new();
             var brush = (Brush)converter.ConvertFromString("#f0111111");
-            Background = brush;
+            Background = Backdrop.IsActive ? Brushes.Transparent : brush;
             CheckSignal.DoWork += CheckSignal_DoWork;
             CheckSignal.ProgressChanged += CheckSignal_ProgressChanged;
             CheckSignal.WorkerReportsProgress = true;
