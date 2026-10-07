@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CharmsBarPort"
         mc:Ignorable="d"
-		Name="Charms"
+		x:Name="Charms"
         Title="Charms Bar"
         Top="0"
         UseLayoutRounding="True"
