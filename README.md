@@ -134,6 +134,12 @@ A: No. This project is <b>IN DEVELOPMENT</b> and should not be used by inexperie
 
 <br />
 
+### Q: How does this fork look like on Windows 10?
+
+A: Exactly the same as the original <a href="https://github.com/Icepenguins101/charms-bar-port">Charms Bar Port</a>, except for new Fluent UI icons.
+
+<br />
+
 ### Q: How can I disable the Charms Bar hot corners without closing the program?
 
 A: This requires editing the Windows Registry. I am not responsible for damage caused by incorrect registry modifications.
@@ -188,9 +194,9 @@ No logoff or restart is required. To revert the change, set the value back to <c
 
 <br />
 
-### Q: Win+C is taken. Can you use another hotkey?
+### Q: Win+[ is taken. Can you use another hotkey?
 
-A: As for now, I'm trying to find a good alternative to this hotkey. for this reason I've disabled it and it will be re-enabled once I finish my research.
+A: Well, this is the only hotkey I've found unassigned for anything. If you have it taken... How?
 
 <br />
 
