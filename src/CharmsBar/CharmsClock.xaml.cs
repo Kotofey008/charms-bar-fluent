@@ -496,7 +496,7 @@ namespace CharmsBarPort
             else
             {
                 int percent = (int)Math.Round(power.BatteryLifePercent * 100.0);
-                bool charging = power.PowerLineStatus == PowerLineStatus.Online || (status & BatteryChargeStatus.Charging) != 0;
+                bool charging = power.PowerLineStatus == System.Windows.Forms.PowerLineStatus.Online || (status & BatteryChargeStatus.Charging) != 0;
                 bool full = percent >= 96;
                 int level = BatteryLevel(percent);
 
