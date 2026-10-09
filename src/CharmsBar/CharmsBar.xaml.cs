@@ -334,15 +334,71 @@ namespace CharmsBarPort
             return (GetAsyncKeyState(vk) & 0x8000) != 0;
         }
 
+        // ---- Win + [ { shortcut ------------------------------------------------------------------------------
+        // Registered with RegisterHotKey(MOD_WIN, VK_OEM_4): a virtual-key code, so it is the same physical key on every
+        // keyboard layout (US "[", Russian "Х"). Windows consumes the combination, the "[" never reaches the application,
+        // and "[" without Win does nothing. If another program already owns Win+[ the registration fails and the
+        // GetAsyncKeyState polling below (which also requires Win) takes over.
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        private const int WM_HOTKEY = 0x0312;
+        private const int SHORTCUT_HOTKEY_ID = 0x4C42;
+        private const uint MOD_WIN = 0x0008;
+        private const uint MOD_NOREPEAT = 0x4000;
+
+        private bool hotKeyRegistered = false;
+        private volatile bool hotKeyPending = false;
+        private IntPtr hotKeyWindow = IntPtr.Zero;
+
         private bool shortcutWasDown = false;
-        /// <summary>True for exactly one timer tick when the [ { key goes down (opens the bar in keyboard mode).</summary>
+        /// <summary>True for exactly one timer tick when Win+[ { is pressed (opens the bar in keyboard mode).</summary>
         private bool shortcutPressed = false;
+
+        private void RegisterShortcut(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero) return;
+            HwndSource source = HwndSource.FromHwnd(hwnd);
+            if (source != null) source.AddHook(HotKeyHook);
+            hotKeyWindow = hwnd;
+            hotKeyRegistered = RegisterHotKey(hwnd, SHORTCUT_HOTKEY_ID, MOD_WIN | MOD_NOREPEAT, (uint)VK_OEM_4);
+        }
+
+        private void UnregisterShortcut()
+        {
+            if (hotKeyRegistered && hotKeyWindow != IntPtr.Zero)
+            {
+                UnregisterHotKey(hotKeyWindow, SHORTCUT_HOTKEY_ID);
+                hotKeyRegistered = false;
+            }
+        }
+
+        private IntPtr HotKeyHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_HOTKEY && wParam.ToInt32() == SHORTCUT_HOTKEY_ID)
+            {
+                hotKeyPending = true;
+                handled = true;
+            }
+            return IntPtr.Zero;
+        }
 
         private void PollShortcutKey()
         {
-            bool down = IsKeyDownGlobal(VK_OEM_4)
-                        && !IsKeyDownGlobal(VK_CONTROL) && !IsKeyDownGlobal(VK_MENU)
-                        && !IsKeyDownGlobal(VK_LWIN) && !IsKeyDownGlobal(VK_RWIN);   // Shift is allowed ("{")
+            if (hotKeyRegistered)
+            {
+                shortcutPressed = hotKeyPending;
+                hotKeyPending = false;
+                return;
+            }
+
+            // Fallback: Win must be held, Ctrl/Alt must not be.
+            bool win = IsKeyDownGlobal(VK_LWIN) || IsKeyDownGlobal(VK_RWIN);
+            bool down = win && IsKeyDownGlobal(VK_OEM_4)
+                        && !IsKeyDownGlobal(VK_CONTROL) && !IsKeyDownGlobal(VK_MENU);
             shortcutPressed = down && !shortcutWasDown;
             shortcutWasDown = down;
         }
@@ -575,6 +631,7 @@ private string GetActiveWindowTitle()
 
         protected override void OnClosed(EventArgs e)
         {
+            UnregisterShortcut();
             SystemParameters.StaticPropertyChanged -= this.SystemParameters_StaticPropertyChanged;
             base.OnClosed(e);
         }
@@ -583,6 +640,7 @@ private string GetActiveWindowTitle()
         {
             var wih = new System.Windows.Interop.WindowInteropHelper(this);
             SetWindowPos(wih.Handle, HWND_TOPMOST, 100, 100, 300, 300, TOPMOST_FLAGS);
+            RegisterShortcut(wih.Handle);
             SyncShellVisibility();   // the bar starts hidden (level 0); StartupUri has just shown the HWND
             _initTimer();
         }

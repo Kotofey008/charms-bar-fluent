@@ -409,4 +409,23 @@
 		</Compile>
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- Clock icons: network (WiFi1-4, Cell1-5, *Error, Other, NetworkOff) and battery (BatteryCharging*, BatteryMissing), each with an optional Dark variant.
+		     Wildcards, so dropping the PNGs into Assets\Images is enough; nothing breaks while some are still missing. -->
+		<None Remove="Assets\Images\WiFi*.png" />
+		<Resource Include="Assets\Images\WiFi*.png" />
+		<None Remove="Assets\Images\Cell*.png" />
+		<Resource Include="Assets\Images\Cell*.png" />
+		<None Remove="Assets\Images\Other*.png" />
+		<Resource Include="Assets\Images\Other*.png" />
+		<None Remove="Assets\Images\NetworkError*.png" />
+		<Resource Include="Assets\Images\NetworkError*.png" />
+		<None Remove="Assets\Images\NetworkOff*.png" />
+		<Resource Include="Assets\Images\NetworkOff*.png" />
+		<None Remove="Assets\Images\BatteryCharging*.png" />
+		<Resource Include="Assets\Images\BatteryCharging*.png" />
+		<None Remove="Assets\Images\BatteryMissing*.png" />
+		<Resource Include="Assets\Images\BatteryMissing*.png" />
+	</ItemGroup>
+
 </Project>

@@ -38,15 +38,15 @@ namespace CharmsBarPort
         // The clock floats (it does not touch a screen edge), so it gets the Windows 11 rounded corners.
         protected override bool RoundedCorners => true;
 
-        public BackgroundWorker CheckSignal = new BackgroundWorker();
         public Microsoft.Win32.RegistryKey localKey = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
-        public int isAirPlaneOn = 0;
         public bool useTransparency = true;
-        public string nw4 = "";
-        public string nw5 = "";
         public string isDark = "";
-        public string hasDrivers = "";
-        public string isEthernet = "";
+
+        // Network state comes from Windows (events), see NetworkStatusMonitor.
+        private NetworkStatusMonitor network;
+        private NetworkState netState = new NetworkState(NetworkKind.Off, 0);
+        private string appliedNetworkKey = null;
+        private readonly Stopwatch signalClock = Stopwatch.StartNew();
         public CharmsClock()
         {
             var dispWidth = SystemParameters.PrimaryScreenWidth;
@@ -62,12 +62,32 @@ namespace CharmsBarPort
             BrushConverter converter = new();
             var brush = (Brush)converter.ConvertFromString("#f0111111");
             Background = Backdrop.IsActive ? Brushes.Transparent : brush;
-            CheckSignal.DoWork += CheckSignal_DoWork;
-            CheckSignal.ProgressChanged += CheckSignal_ProgressChanged;
-            CheckSignal.WorkerReportsProgress = true;
             System.Windows.Forms.Application.ThreadException += new ThreadExceptionEventHandler(CharmsClock.Form1_UIThreadException);
             InitializeComponent();
+
+            network = new NetworkStatusMonitor();
+            network.StateChanged += Network_StateChanged;
+            // Signal strength is refreshed when the clock appears and every 10 s while it is visible; nothing runs while hidden.
+            IsVisibleChanged += (s, e) => { if (IsVisible) network.RequestRefresh(); };
+
             _initTimer();
+        }
+
+        private void Network_StateChanged(NetworkState state)
+        {
+            // Raised on a thread-pool thread: hand over to the WPF UI thread.
+            dispatcher.BeginInvoke((Action)(() => { netState = state; }));
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            if (network != null)
+            {
+                network.StateChanged -= Network_StateChanged;
+                network.Dispose();
+                network = null;
+            }
+            base.OnClosed(e);
         }
 
         private System.Windows.Forms.Timer t = null;
@@ -75,17 +95,6 @@ namespace CharmsBarPort
 
         private void _initTimer()
         {
-            if (SystemParameters.HighContrast == true)
-            {
-                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon151Dark.png", UriKind.Relative));
-                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon133Dark.png", UriKind.Relative));
-            }
-            else
-            {
-                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon151.png", UriKind.Relative));
-                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon133.png", UriKind.Relative));
-            }
-
             System.Windows.Forms.Timer t = new System.Windows.Forms.Timer();
             t.Interval = 1;
             t.Tick += OnTimedEvent;
@@ -227,222 +236,17 @@ namespace CharmsBarPort
                     Clocked.Foreground = SystemColors.WindowTextBrush;
                 }
 
-                        while (!CheckSignal.IsBusy && this.IsVisible == true)
-                        {
-                            CheckSignal.RunWorkerAsync();
-                    }
+                if (this.IsVisible && network != null && signalClock.ElapsedMilliseconds > 10000)
+                {
+                    signalClock.Restart();
+                    network.RequestRefresh();
+                }
                 CheckBatteryStatus();
                 ClockBorder.BorderBrush = SystemColors.WindowTextBrush;
-                var localKey = RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, RegistryView.Registry64);
-                var localKey2 = localKey.OpenSubKey("SYSTEM\\ControlSet001\\Control\\RadioManagement\\SystemRadioState");
-                var isAirPlaneOn = localKey2.GetValue("", "").ToString();
                 ClockBorder.Background = SystemColors.WindowBrush;
-                var nw = "";
-                var nw2 = "";
-                var nw3 = "";
 
-                nw = IsConnected().ToString();
-                nw2 = IsLocal().ToString();
-                nw3 = IsWeak().ToString();
+                UpdateNetworkIcon();
 
-                if (SystemParameters.HighContrast == false)
-                {
-                    NoDrivers.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon103" + isDark + ".png", UriKind.Relative));
-                    NoInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon115" + isDark + ".png", UriKind.Relative));
-                    Ethernet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon106" + isDark + ".png", UriKind.Relative));
-                    NoInternetFound.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon112" + isDark + ".png", UriKind.Relative));
-                    IsCharging.Source = new BitmapImage(new Uri(@"/Assets/Images/BatteryFullCharging" + isDark + ".png", UriKind.Relative));
-                    Airplane.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon118" + isDark + ".png", UriKind.Relative));
-                }
-
-                if (SystemParameters.HighContrast == true)
-                {
-                    NoDrivers.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon103" + isDark + ".png", UriKind.Relative));
-                    NoInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon115" + isDark + ".png", UriKind.Relative));
-                    Ethernet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon106" + isDark + ".png", UriKind.Relative));
-                    NoInternetFound.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon112" + isDark + ".png", UriKind.Relative));
-                    IsCharging.Source = new BitmapImage(new Uri(@"/Assets/Images/BatteryFullCharging" + isDark + ".png", UriKind.Relative));
-                    Airplane.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon118" + isDark + ".png", UriKind.Relative));
-                }
-
-
-                if (isEthernet.IndexOf("Ethernet") != -1)
-                {
-                    NoDrivers.Visibility = Visibility.Hidden;
-                    NoInternet.Visibility = Visibility.Hidden;
-                    NoInternetFound.Visibility = Visibility.Hidden;
-                    Ethernet.Visibility = Visibility.Visible;
-                    HasInternet.Visibility = Visibility.Hidden;
-                    WeakInternet.Visibility = Visibility.Hidden;
-                    Airplane.Visibility = Visibility.Hidden;
-                }
-
-                if (hasDrivers.IndexOf("Thereisno") != -1)
-                {
-                    NoDrivers.Visibility = Visibility.Visible;
-                    NoInternet.Visibility = Visibility.Hidden;
-                    NoInternetFound.Visibility = Visibility.Hidden;
-                    Ethernet.Visibility = Visibility.Hidden;
-                    HasInternet.Visibility = Visibility.Hidden;
-                    WeakInternet.Visibility = Visibility.Hidden;
-                    Airplane.Visibility = Visibility.Hidden;
-                }
-                else
-                {
-                    if (SystemParameters.HighContrast == false)
-                    {
-                        if (nw == "True" && nw2 == "False" && nw3 == "False" && isAirPlaneOn == "0")
-                        {
-                            NoDrivers.Visibility = Visibility.Hidden;
-                            NoInternet.Visibility = Visibility.Hidden;
-                            NoInternetFound.Visibility = Visibility.Hidden;
-                            Ethernet.Visibility = Visibility.Hidden;
-                            HasInternet.Visibility = Visibility.Visible;
-                            WeakInternet.Visibility = Visibility.Hidden;
-                            Airplane.Visibility = Visibility.Hidden;
-
-                            if (nw4.StartsWith("100") == true || nw4.StartsWith("9") == true || nw4.StartsWith("8") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon151.png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon133.png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("6") == true || nw4.StartsWith("7") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon148.png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon130.png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("4") == true || nw4.StartsWith("5") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon145.png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon127.png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("2") == true || nw4.StartsWith("3") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon142.png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon124.png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("0") == true || nw4.StartsWith("1") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon139.png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon121.png", UriKind.Relative));
-                            }
-                        }
-                    }
-
-                    if (SystemParameters.HighContrast == true)
-                    {
-                        if (nw == "True" && nw2 == "False" && nw3 == "False" && isAirPlaneOn == "0")
-                        {
-                            NoDrivers.Visibility = Visibility.Hidden;
-                            NoInternet.Visibility = Visibility.Hidden;
-                            NoInternetFound.Visibility = Visibility.Hidden;
-                            Ethernet.Visibility = Visibility.Hidden;
-                            HasInternet.Visibility = Visibility.Visible;
-                            WeakInternet.Visibility = Visibility.Hidden;
-                            Airplane.Visibility = Visibility.Hidden;
-
-                            if (nw4.StartsWith("100") == true || nw4.StartsWith("9") == true || nw4.StartsWith("8") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon151" + isDark + ".png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon133" + isDark + ".png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("6") == true || nw4.StartsWith("7") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon148" + isDark + ".png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon130" + isDark + ".png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("4") == true || nw4.StartsWith("5") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon145" + isDark + ".png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon127" + isDark + ".png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("2") == true || nw4.StartsWith("3") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon142" + isDark + ".png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon124" + isDark + ".png", UriKind.Relative));
-                            }
-
-                            if (nw4.StartsWith("0") == true || nw4.StartsWith("1") == true)
-                            {
-                                HasInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon139" + isDark + ".png", UriKind.Relative));
-                                WeakInternet.Source = new BitmapImage(new Uri(@"/Assets/Images/Icon121" + isDark + ".png", UriKind.Relative));
-                            }
-                        }
-                    }
-
-                    if (nw == "True" && nw2 == "False" && nw3 == "False" && isAirPlaneOn == "1")
-                    {
-                        NoDrivers.Visibility = Visibility.Hidden;
-                        NoInternet.Visibility = Visibility.Hidden;
-                        NoInternetFound.Visibility = Visibility.Hidden;
-                        Ethernet.Visibility = Visibility.Hidden;
-                        HasInternet.Visibility = Visibility.Hidden;
-                        WeakInternet.Visibility = Visibility.Hidden;
-                        Airplane.Visibility = Visibility.Visible;
-                    }
-
-                    if (nw2 == "True" && nw == "False" && nw3 == "False" && isAirPlaneOn == "0")
-                    {
-                        NoDrivers.Visibility = Visibility.Hidden;
-                        NoInternet.Visibility = Visibility.Hidden;
-                        NoInternetFound.Visibility = Visibility.Hidden;
-                        Ethernet.Visibility = Visibility.Hidden;
-                        HasInternet.Visibility = Visibility.Hidden;
-                        WeakInternet.Visibility = Visibility.Visible;
-                        Airplane.Visibility = Visibility.Hidden;
-                    }
-
-                    if (nw == "False" && nw2 == "False" && nw3 == "False" && isAirPlaneOn == "0" && nw5 == "SoftwareOn")
-                    {
-                        NoDrivers.Visibility = Visibility.Hidden;
-                        NoInternet.Visibility = Visibility.Visible;
-                        NoInternetFound.Visibility = Visibility.Hidden;
-                        Ethernet.Visibility = Visibility.Hidden;
-                        HasInternet.Visibility = Visibility.Hidden;
-                        WeakInternet.Visibility = Visibility.Hidden;
-                        Airplane.Visibility = Visibility.Hidden;
-                    }
-
-                    if (nw == "False" && nw2 == "False" && nw3 == "False" && isAirPlaneOn == "0" && nw5 == "SoftwareOff")
-                    {
-                        NoDrivers.Visibility = Visibility.Hidden;
-                        NoInternet.Visibility = Visibility.Hidden;
-                        NoInternetFound.Visibility = Visibility.Visible;
-                        Ethernet.Visibility = Visibility.Hidden;
-                        HasInternet.Visibility = Visibility.Hidden;
-                        WeakInternet.Visibility = Visibility.Hidden;
-                        Airplane.Visibility = Visibility.Hidden;
-                    }
-
-                    if (nw == "False" && nw2 == "False" && nw3 == "True" && isAirPlaneOn == "0")
-                    {
-                        NoDrivers.Visibility = Visibility.Hidden;
-                        NoInternet.Visibility = Visibility.Hidden;
-                        NoInternetFound.Visibility = Visibility.Hidden;
-                        Ethernet.Visibility = Visibility.Hidden;
-                        HasInternet.Visibility = Visibility.Hidden;
-                        WeakInternet.Visibility = Visibility.Visible;
-                        Airplane.Visibility = Visibility.Hidden;
-                    }
-
-                    if (nw == "False" && nw2 == "False" && nw3 == "False" && isAirPlaneOn == "1")
-                    {
-                        NoDrivers.Visibility = Visibility.Hidden;
-                        NoInternet.Visibility = Visibility.Hidden;
-                        NoInternetFound.Visibility = Visibility.Hidden;
-                        Ethernet.Visibility = Visibility.Hidden;
-                        HasInternet.Visibility = Visibility.Hidden;
-                        WeakInternet.Visibility = Visibility.Hidden;
-                        Airplane.Visibility = Visibility.Visible;
-                    }
-                }
                 if (Clocks.Content.ToString().Length < 3 && Clocks.Content.ToString().StartsWith("1 ") == false && Clocks.Content.ToString().StartsWith("10") == false && Clocks.Content.ToString().StartsWith("11") == false && Clocks.Content.ToString().StartsWith("12") == false || Clocks.Content.ToString().Length == 2 && Clocks.Content.ToString().StartsWith("1 ") == false && Clocks.Content.ToString().StartsWith("10") == false && Clocks.Content.ToString().StartsWith("11") == false && Clocks.Content.ToString().StartsWith("12") == false)
                 {
                     Clocks.Margin = new Thickness(94, 3, 0, -106);
@@ -537,7 +341,6 @@ namespace CharmsBarPort
                 }
 
                 ClockBorder.Width = this.Width;
-                localKey.Close();
                     }
             }));
         }
@@ -549,268 +352,174 @@ namespace CharmsBarPort
             System.Windows.Forms.Application.Restart();
         }
 
-        private bool IsConnected()
+        // ------------------------------------------------------------------------------------------------
+        // Asset lookup. Only assets that really exist in the project are ever used; nothing is generated.
+        // ------------------------------------------------------------------------------------------------
+
+        private readonly Dictionary<string, BitmapImage> assetCache = new Dictionary<string, BitmapImage>();
+
+        private BitmapImage LoadAsset(string file)
         {
+            BitmapImage cached;
+            if (assetCache.TryGetValue(file, out cached)) return cached;
+
+            BitmapImage image = null;
             try
             {
-                var connectionProfile = NetworkInformation.GetInternetConnectionProfile();
-                return (connectionProfile != null &&
-                      (connectionProfile.GetNetworkConnectivityLevel() == NetworkConnectivityLevel.InternetAccess));
-            }
-
-            catch(Exception err)
-            {
-                System.Windows.Forms.Application.Restart();
-                return false;
-            }
-        }
-        private bool IsWeak()
-        {
-            try
-            {
-                var connectionProfile = NetworkInformation.GetInternetConnectionProfile();
-                return (connectionProfile != null &&
-                      (connectionProfile.GetNetworkConnectivityLevel() == NetworkConnectivityLevel.ConstrainedInternetAccess));
-            }
-
-            catch (Exception err)
-            {
-                System.Windows.Forms.Application.Restart();
-                return false;
-            }
-        }
-
-        private bool IsLocal()
-        {
-            try
-            {
-                var connectionProfile = NetworkInformation.GetInternetConnectionProfile();
-                return (connectionProfile != null &&
-                      (connectionProfile.GetNetworkConnectivityLevel() == NetworkConnectivityLevel.LocalAccess));
-            }
-
-            catch (Exception err)
-            {
-                System.Windows.Forms.Application.Restart();
-                return false;
-            }
-        }
-
-        private void CheckSignal_DoWork(object sender, DoWorkEventArgs e)
-        {
-            if (this.IsVisible == true)
-            {
-                try
+                var uri = new Uri("pack://application:,,,/Assets/Images/" + file + ".png", UriKind.Absolute);
+                var resource = System.Windows.Application.GetResourceStream(uri);
+                if (resource != null)
                 {
-                    Process proc = new Process
+                    using (resource.Stream)
                     {
-                        StartInfo = new ProcessStartInfo
-                        {
-                            FileName = "netsh.exe",
-                            Arguments = "wlan show interfaces",
-                            UseShellExecute = false,
-                            RedirectStandardOutput = true,
-                            CreateNoWindow = true
-                        }
-                    };
-                    while (true)
-                    {
-                        proc.Start();
-                        string line;
-                        int strength = 0;
-                        string wifi;
-                        while (!proc.StandardOutput.EndOfStream)
-                        {
-                            line = proc.StandardOutput.ReadLine();
-
-                            if (line.Contains("Name"))
-                            {
-                                string tmpx = line.Split(':')[1].Split("%")[0];
-                                isEthernet = tmpx.ToString();
-                            }
-
-                            if (line.Contains("There is"))
-                            {
-                                string tmp = line;
-                                hasDrivers = tmp.Replace(" ", "");
-                            }
-
-                            if (line.Contains("Software"))
-                            {
-                                string tmp2 = line;
-                                nw5 = tmp2.Replace(" ", "");
-                            }
-
-                            if (line.Contains("Signal"))
-                            {
-                                string tmp3 = line.Split(':')[1].Split("%")[0];
-                                Int32.TryParse(tmp3, out strength);
-                                nw4 = strength.ToString();
-                                CheckSignal.ReportProgress(strength);
-                            }
-
-
-                        }
-                        proc.WaitForExit();
+                        var bmp = new BitmapImage();
+                        bmp.BeginInit();
+                        bmp.CacheOption = BitmapCacheOption.OnLoad;   // decode now, then the stream can be closed
+                        bmp.StreamSource = resource.Stream;
+                        bmp.EndInit();
+                        bmp.Freeze();
+                        image = bmp;
                     }
                 }
+            }
+            catch (Exception)
+            {
+                image = null;   // missing / unreadable asset: handled by the caller, never fatal
+            }
 
-                catch (Exception ex)
-                {
+            assetCache[file] = image;
+            return image;
+        }
 
-                }
+        /// <summary>
+        /// Loads "name" + the current theme suffix ("Dark" or ""); if that variant does not exist, the other
+        /// variant of the same icon. Returns null when the icon does not exist at all.
+        /// </summary>
+        private BitmapImage LoadThemed(string name)
+        {
+            string preferred = name + isDark;
+            string other = name + (isDark == "" ? "Dark" : "");
+            return LoadAsset(preferred) ?? LoadAsset(other);
+        }
+
+        private BitmapImage LoadFirst(params string[] names)
+        {
+            foreach (string n in names)
+            {
+                var image = LoadThemed(n);
+                if (image != null) return image;
+            }
+            return null;
+        }
+
+        // ------------------------------------------------------------------------------------------------
+        // Network icon
+        // ------------------------------------------------------------------------------------------------
+
+        private static string NetworkAssetName(NetworkState state)
+        {
+            switch (state.Kind)
+            {
+                case NetworkKind.WiFi: return state.Level >= 1 && state.Level <= 4 ? "WiFi" + state.Level : null;
+                case NetworkKind.Cell: return state.Level >= 1 && state.Level <= 5 ? "Cell" + state.Level : null;
+                case NetworkKind.WiFiError: return "WiFiError";
+                case NetworkKind.CellError: return "CellError";
+                case NetworkKind.Other: return "Other";
+                case NetworkKind.Error: return "NetworkError";
+                default: return "NetworkOff";
             }
         }
 
-        static void CheckSignal_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        private void UpdateNetworkIcon()
         {
-            
+            string name = NetworkAssetName(netState);
+            string key = (name ?? "-") + "|" + isDark;
+            if (key == appliedNetworkKey) return;   // nothing changed: no work on the 1 ms tick
+            appliedNetworkKey = key;
+
+            // The old per-state images are not used any more; one image shows the selected icon.
+            NoDrivers.Visibility = Visibility.Hidden;
+            NoInternet.Visibility = Visibility.Hidden;
+            NoInternetFound.Visibility = Visibility.Hidden;
+            Ethernet.Visibility = Visibility.Hidden;
+            WeakInternet.Visibility = Visibility.Hidden;
+            Airplane.Visibility = Visibility.Hidden;
+
+            // Unknown level (e.g. cellular signal not exposed by Windows) or a missing asset: show nothing
+            // rather than a wrong or invented icon.
+            BitmapImage icon = name == null ? null : LoadThemed(name);
+            if (icon == null)
+            {
+                HasInternet.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            HasInternet.Source = icon;
+            HasInternet.Visibility = Visibility.Visible;
+        }
+
+        // ------------------------------------------------------------------------------------------------
+        // Battery icon
+        // ------------------------------------------------------------------------------------------------
+
+        private readonly Stopwatch batteryClock = Stopwatch.StartNew();
+        private long lastBatteryTick = -100000;
+        private string lastBatteryTheme = null;
+
+        private static int BatteryLevel(int percent)
+        {
+            // Supported levels: 1, 5, 10, 20 ... 90 (and Full).
+            if (percent >= 90) return 90;
+            if (percent >= 10) return (percent / 10) * 10;
+            if (percent >= 5) return 5;
+            return 1;
         }
 
         private void CheckBatteryStatus()
         {
-            var pw = SystemInformation.PowerStatus.BatteryChargeStatus.ToString();
-            var pw2 = SystemInformation.PowerStatus.PowerLineStatus.ToString();
-            double pw3 = SystemInformation.PowerStatus.BatteryLifePercent;
-            var dasBoot = pw3.ToString();
+            // The power state changes slowly; the 1 ms tick must not hit it every time.
+            if (batteryClock.ElapsedMilliseconds - lastBatteryTick < 1000 && lastBatteryTheme == isDark) return;
+            lastBatteryTick = batteryClock.ElapsedMilliseconds;
+            lastBatteryTheme = isDark;
 
-            if (dasBoot.StartsWith("1") == true || dasBoot.StartsWith("0.9") == true && pw3 > 0.96 && dasBoot.StartsWith("1.0") == false)
+            var power = SystemInformation.PowerStatus;
+            BatteryChargeStatus status = power.BatteryChargeStatus;
+
+            // The separate plug overlay is gone: charging has its own icons.
+            IsCharging.Visibility = Visibility.Hidden;
+
+            BitmapImage icon;
+            if ((status & BatteryChargeStatus.NoSystemBattery) != 0)   // "Unknown" (255) contains this bit too
             {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/BatteryFull" + isDark + ".png", UriKind.Relative));
+                icon = LoadFirst("BatteryMissing");
+            }
+            else
+            {
+                int percent = (int)Math.Round(power.BatteryLifePercent * 100.0);
+                bool charging = power.PowerLineStatus == PowerLineStatus.Online || (status & BatteryChargeStatus.Charging) != 0;
+                bool full = percent >= 96;
+                int level = BatteryLevel(percent);
+
+                if (charging)
+                {
+                    icon = full
+                        ? LoadFirst("BatteryChargingFull", "BatteryFullCharging", "BatteryFull")
+                        : LoadFirst("BatteryCharging" + level, "Battery" + level);
+                }
+                else
+                {
+                    icon = full ? LoadFirst("BatteryFull") : LoadFirst("Battery" + level);
+                }
             }
 
-            if (dasBoot.StartsWith("0.9") == true && pw3 > 0.95 && pw3 < 0.96 && dasBoot.StartsWith("1") == false)
+            if (icon == null)
             {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery90" + isDark + ".png", UriKind.Relative));
+                BatteryLife.Visibility = Visibility.Hidden;   // missing asset: no icon rather than an unrelated one
+                return;
             }
 
-            if (dasBoot.StartsWith("0.9") == true && pw3 < 0.95)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery90" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.8") == true && pw3 > 0.86)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery80" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.8") == true && pw3 < 0.86)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery80" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.7") == true && pw3 > 0.76)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery70" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.7") == true && pw3 < 0.76)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery70" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.6") == true && pw3 > 0.66)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery60" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.6") == true && pw3 < 0.66)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery60" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.5") == true && pw3 > 0.56)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery50" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.5") == true && pw3 < 0.56)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery50" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.4") == true && pw3 > 0.46)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery40" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.4") == true && pw3 < 0.46)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery40" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.3") == true && pw3 > 0.36)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery30" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.3") == true && pw3 < 0.36)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery30" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.2") == true && pw3 > 0.26)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery20" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.2") == true && pw3 < 0.26)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery20" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.1") == true && pw3 > 0.16)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery10" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.1") == true && pw3 < 0.16)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery1" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.1") == true && pw3 > 0.6)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery5" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.1") == true && pw3 < 0.6)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery5" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.1") == true && pw3 > 0.2)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery1" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.1") == true && pw3 < 0.2)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery1" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (dasBoot.StartsWith("0.1") == true && pw3 < 0.1)
-            {
-                BatteryLife.Source = new BitmapImage(new Uri(@"/Assets/Images/Battery0" + isDark + ".png", UriKind.Relative));
-            }
-
-            if (pw2 == "Online")
-            {
-                BatteryLife.Visibility = Visibility.Visible;
-                IsCharging.Visibility = Visibility.Visible;
-            }
-
-            if (pw2 == "Offline")
-            {
-                BatteryLife.Visibility = Visibility.Visible;
-                IsCharging.Visibility = Visibility.Hidden;
-            }
-
-            if (pw == "NoSystemBattery")
-            {
-                BatteryLife.Visibility = Visibility.Hidden;
-                IsCharging.Visibility = Visibility.Hidden;
-            }
+            BatteryLife.Source = icon;
+            BatteryLife.Visibility = Visibility.Visible;
         }
     }
 
