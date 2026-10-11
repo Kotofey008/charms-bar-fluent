@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using Microsoft.Win32;
 
-namespace CharmsBarPort
+namespace CharmsBarMica
 {
     /// <summary>
     /// Value of DWMWA_SYSTEMBACKDROP_TYPE (DWM_SYSTEMBACKDROP_TYPE).

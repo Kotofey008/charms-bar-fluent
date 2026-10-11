@@ -1,4 +1,4 @@
-﻿<Application x:Name="Charms_Bar_Port" x:Class="CharmsBarPort.App"
+﻿<Application x:Name="Charms_Bar_Mica" x:Class="CharmsBarMica.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="CharmsBar.xaml"

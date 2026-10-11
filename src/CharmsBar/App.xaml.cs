@@ -44,7 +44,7 @@ using Windows.UI.Core;
 using Windows.UI.Text;
 using WinRT;
 
-namespace CharmsBarPort
+namespace CharmsBarMica
 {
     public partial class App : Application
     {
@@ -61,7 +61,7 @@ namespace CharmsBarPort
 
             if (count > 1)
             {
-                System.Windows.MessageBox.Show("Charms Bar Port is already running.\n\nTo close Charms Bar Port, go to the Task Manager and then end the Charms Bar Port task.");
+                System.Windows.MessageBox.Show("Charms Bar Mica is already running.\n\nTo close Charms Bar Mica, go to the Task Manager and then end the Charms Bar Mica task.");
                 App.Current.Shutdown();
             }
         }

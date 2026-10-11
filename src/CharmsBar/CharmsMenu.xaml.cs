@@ -31,7 +31,7 @@ using static System.Resources.ResXFileRef;
 using System.Net.NetworkInformation;
 using System.Threading;
 
-namespace CharmsBarPort
+namespace CharmsBarMica
 {
     public partial class CharmsMenu : ShellWindow
     {
@@ -54,6 +54,7 @@ namespace CharmsBarPort
             Top = dispHeight - 190;   // panel now starts at the window top (old 10px transparent margin removed)
             System.Windows.Forms.Application.ThreadException += new ThreadExceptionEventHandler(CharmsMenu.Form1_UIThreadException);
             InitializeComponent();
+            StartLogo.ApplyTo(WinAccentHost, false);   // Windows 7 / 8 / 11 logo shape
             _initTimer();
         }
 

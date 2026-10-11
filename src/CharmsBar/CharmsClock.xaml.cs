@@ -31,7 +31,7 @@ using static System.Resources.ResXFileRef;
 using System.Net.NetworkInformation;
 using System.Threading;
 
-namespace CharmsBarPort
+namespace CharmsBarMica
 {
     public partial class CharmsClock : ShellWindow
     {

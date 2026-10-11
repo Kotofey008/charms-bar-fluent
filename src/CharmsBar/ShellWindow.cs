@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
-namespace CharmsBarPort
+namespace CharmsBarMica
 {
     /// <summary>
     /// Base class of the three charms windows (bar, clock, menu).

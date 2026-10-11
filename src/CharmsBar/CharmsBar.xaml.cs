@@ -46,7 +46,7 @@ using Windows.UI.Text;
 using WinRT;
 using System.Globalization;
 
-namespace CharmsBarPort
+namespace CharmsBarMica
 {
     #region Cursor info
     public static class CursorExtensions
@@ -308,6 +308,10 @@ namespace CharmsBarPort
             this.KeyDown += new System.Windows.Input.KeyEventHandler(MainWindow_KeyDown);
             System.Windows.Forms.Application.ThreadException += new ThreadExceptionEventHandler(CharmsBar.Form1_UIThreadException);
             InitializeComponent();
+
+            // Start charm logo (Windows 7 / 8 / 11), chosen before the window is first shown.
+            StartLogo.ApplyTo(WinAccentHost, true);
+            WinCharmInactive.Source = Img(StartLogo.Prefix + "Inactive");
         }
 
         // ---- native helpers: cursor position and layout-independent keys --------------------------------------
@@ -754,7 +758,7 @@ private string GetActiveWindowTitle()
                 ShareCharmInactive.Source = Img("ShareInactive" + d);
                 DevicesCharmInactive.Source = Img("DevicesInactive" + d);
                 SettingsCharmInactive.Source = Img("SettingsInactive" + d);
-                WinCharmInactive.Source = Img("Windows8Inactive" + d);
+                WinCharmInactive.Source = Img(StartLogo.Prefix + "Inactive" + d);
             }
         }
 
@@ -3579,21 +3583,21 @@ private string GetActiveWindowTitle()
 
                     if (WinDown.Visibility == Visibility.Visible && WinHover.Visibility == Visibility.Visible && SystemParameters.HighContrast == false)
                     {
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
+                        WinCharm.Source = null;
                         var brush = (Brush)converter.ConvertFromString("#444444");
                         // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     }
 
                     if (WinHover.Visibility == Visibility.Visible && WinDown.Visibility != Visibility.Visible && SystemParameters.HighContrast == false)
                     {
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Hover.png", UriKind.Relative));
+                        WinCharm.Source = null;
                         var brush = (Brush)converter.ConvertFromString("#333333");
                         // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     }
 
                     if (WinHover.Visibility != Visibility.Visible && WinDown.Visibility != Visibility.Visible && SystemParameters.HighContrast == false)
                     {
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
+                        WinCharm.Source = null;
                         var brush = (Brush)converter.ConvertFromString("#111111");
                         // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     }
@@ -4541,7 +4545,7 @@ private string GetActiveWindowTitle()
                     {
                         SearchCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Search.png", UriKind.Relative));
                         ShareCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Share.png", UriKind.Relative));
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
+                        WinCharm.Source = null;
                         DevicesCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Devices.png", UriKind.Relative));
                         SettingsCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Settings.png", UriKind.Relative));
                         WinAccent.Fill = SystemParameters.WindowGlassBrush;
@@ -4568,7 +4572,7 @@ private string GetActiveWindowTitle()
                         // dark color
                         SearchCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Search.png", UriKind.Relative));
                         ShareCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Share.png", UriKind.Relative));
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8HighContrast.png", UriKind.Relative));
+                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/" + StartLogo.Prefix + @"HighContrast.png", UriKind.Relative));
                         DevicesCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Devices.png", UriKind.Relative));
                         SettingsCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Settings.png", UriKind.Relative));
                     }
@@ -4577,7 +4581,7 @@ private string GetActiveWindowTitle()
                         // light color
                         SearchCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/SearchDark.png", UriKind.Relative));
                         ShareCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/ShareDark.png", UriKind.Relative));
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8HighContrastDark.png", UriKind.Relative));
+                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/" + StartLogo.Prefix + @"HighContrastDark.png", UriKind.Relative));
                         DevicesCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/DevicesDark.png", UriKind.Relative));
                         SettingsCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/SettingsDark.png", UriKind.Relative));
                     }
@@ -4642,12 +4646,12 @@ private string GetActiveWindowTitle()
                     if (col.R * 0.2126 + col.G * 0.7152 + col.B * 0.0722 < 255 / 2)
                     {
                         // dark color
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8HighContrast.png", UriKind.Relative));
+                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/" + StartLogo.Prefix + @"HighContrast.png", UriKind.Relative));
                     }
                     else
                     {
                         // light color
-                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8HighContrastDark.png", UriKind.Relative));
+                        WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/" + StartLogo.Prefix + @"HighContrastDark.png", UriKind.Relative));
                     }
                 }
 
@@ -4800,7 +4804,7 @@ private string GetActiveWindowTitle()
 
             if (winActive == true && winHover == true && SystemParameters.HighContrast == false)
             {
-                WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
+                WinCharm.Source = null;
                 var brush = (Brush)converter.ConvertFromString("#444444");
                 // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Visible;
@@ -4840,7 +4844,7 @@ private string GetActiveWindowTitle()
 
             if (winActive == true && winHover == false && SystemParameters.HighContrast == false)
             {
-                WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
+                WinCharm.Source = null;
                 var brush = (Brush)converter.ConvertFromString("#111111");
                 // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Hidden;
@@ -4944,7 +4948,7 @@ private string GetActiveWindowTitle()
             winActive = true;
             if (SystemParameters.HighContrast == false)
             {
-                WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
+                WinCharm.Source = null;
                 var brush = (Brush)converter.ConvertFromString("#444444");
                 // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Visible;
@@ -5047,7 +5051,7 @@ private string GetActiveWindowTitle()
             WinCharmUse = true;
             if (charmsAppear == true && System.Windows.Forms.Control.MouseButtons != MouseButtons.Left && SystemParameters.HighContrast == false)
             {
-                WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Hover.png", UriKind.Relative));
+                WinCharm.Source = null;
                 var brush = (Brush)converter.ConvertFromString("#333333");
                 // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinHover.Visibility = Visibility.Visible;
@@ -5055,7 +5059,7 @@ private string GetActiveWindowTitle()
 
             if (charmsAppear == true && System.Windows.Forms.Control.MouseButtons == MouseButtons.Left && SystemParameters.HighContrast == false)
             {
-                WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
+                WinCharm.Source = null;
                 var brush = (Brush)converter.ConvertFromString("#444444");
                 // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 WinDown.Visibility = Visibility.Visible;
@@ -5082,7 +5086,7 @@ private string GetActiveWindowTitle()
             {
                 if (System.Windows.Forms.Control.MouseButtons == MouseButtons.None && SystemParameters.HighContrast == false)
                 {
-                    WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
+                    WinCharm.Source = null;
                     var brush = (Brush)converter.ConvertFromString("#111111");
                     // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     WinDown.Visibility = Visibility.Hidden;
@@ -5090,14 +5094,14 @@ private string GetActiveWindowTitle()
 
                 if (System.Windows.Forms.Control.MouseButtons == MouseButtons.Left && SystemParameters.HighContrast == false)
                 {
-                    WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8Down.png", UriKind.Relative));
+                    WinCharm.Source = null;
                     var brush = (Brush)converter.ConvertFromString("#444444");
                     // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                 }
 
                 if (CharmsHover.Content == "False" && System.Windows.Forms.Control.MouseButtons == MouseButtons.Left && SystemParameters.HighContrast == false)
                 {
-                    WinCharm.Source = new BitmapImage(new Uri(@"/Assets/Images/Windows8.png", UriKind.Relative));
+                    WinCharm.Source = null;
                     var brush = (Brush)converter.ConvertFromString("#111111");
                     // (FadeBlocker stays transparent: the fader is clipped to the logo, nothing leaks, and an opaque block would hide Mica)
                     WinDown.Visibility = Visibility.Hidden;
