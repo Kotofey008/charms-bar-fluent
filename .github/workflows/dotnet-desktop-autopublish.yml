@@ -1,0 +1,133 @@
+name: Build Windows and publish pre-release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-prerelease-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOLUTION_NAME: src/CharmsBar.sln
+  CONFIGURATION: Release
+  DOTNET_VERSION: 7.0.x
+
+jobs:
+  build:
+    name: Build Windows (${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            platform_target: x64
+          - arch: x86
+            platform_target: x86
+          - arch: arm64
+            platform_target: ARM64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore
+        shell: pwsh
+        run: |
+          msbuild "$env:SOLUTION_NAME" /t:Restore `
+            /p:Configuration="$env:CONFIGURATION" `
+            /p:PlatformTarget="${{ matrix.platform_target }}"
+
+      - name: Build
+        shell: pwsh
+        run: |
+          msbuild "$env:SOLUTION_NAME" `
+            /p:Configuration="$env:CONFIGURATION" `
+            /p:PlatformTarget="${{ matrix.platform_target }}" `
+            /m
+
+      - name: Package build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $outputRoot = Join-Path $env:GITHUB_WORKSPACE 'src'
+          $exe = Get-ChildItem -Path $outputRoot -Recurse -File -Filter '*.exe' |
+            Where-Object { $_.FullName -match '[\\/]bin[\\/]Release[\\/]' } |
+            Sort-Object FullName |
+            Select-Object -First 1
+
+          if (-not $exe) {
+            throw "No .exe found under src/**/bin/Release. Check the solution's output paths."
+          }
+
+          $packageDir = Join-Path $env:RUNNER_TEMP "CharmsBar-${{ matrix.arch }}"
+          New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
+          Copy-Item -Path (Join-Path $exe.DirectoryName '*') -Destination $packageDir -Recurse -Force
+
+          $zipPath = Join-Path $env:GITHUB_WORKSPACE "CharmsBar-windows-${{ matrix.arch }}.zip"
+          Compress-Archive -Path (Join-Path $packageDir '*') -DestinationPath $zipPath -Force
+
+      - name: Upload packaged build
+        uses: actions/upload-artifact@v4
+        with:
+          name: CharmsBar-windows-${{ matrix.arch }}
+          path: CharmsBar-windows-${{ matrix.arch }}.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  prerelease:
+    name: Publish automatic pre-release
+    runs-on: windows-latest
+    needs: build
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Download all packaged builds
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: CharmsBar-windows-*
+          merge-multiple: true
+
+      - name: Set pre-release metadata
+        id: metadata
+        shell: pwsh
+        run: |
+          $shortSha = "${{ github.sha }}".Substring(0, 7)
+          $tag = "prerelease-$shortSha-${{ github.run_number }}-${{ github.run_attempt }}"
+          $name = "Pre-release $shortSha (build ${{ github.run_number }}.${{ github.run_attempt }})"
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "name=$name" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GitHub pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.metadata.outputs.tag }}
+          name: ${{ steps.metadata.outputs.name }}
+          body: |
+            Automated pre-release build.
+
+            - Commit: `${{ github.sha }}`
+            - Trigger: `${{ github.event_name }}`
+            - Architectures: x64, x86, ARM64
+
+            This is an automated development build and may contain bugs.
+          files: release-assets/*.zip
+          draft: false
+          prerelease: true
+          make_latest: false
