@@ -14,6 +14,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/Kotofey008/charms-bar-mica.svg)](https://github.com/Kotofey008/charms-bar-mica/stargazers)
 [![Documentation](https://img.shields.io/badge/Docs-WIP-red.svg)](https://github.com/Kotofey008/charms-bar-mica/wiki)
 [![Issues](https://img.shields.io/github/issues/Kotofey008/charms-bar-mica.svg)](https://github.com/Kotofey008/charms-bar-mica/issues)
+[![dotNET](https://img.shields.io/badge/.NET_7-5C2D91?style=for-the-badge&logo=.net&logoColor=white)](https://dotnet.microsoft.com/en-us/download/dotnet/7.0)
 
 ## Contents
 
@@ -44,7 +45,7 @@ Charms Bar Mica is an independent, unofficial project and is not affiliated with
 
 As you may know, the original Charms Bar Port had not received an update since approximately 2024 and had never received an official release package. There was no actively maintained alternative that provided the same experience.
 
-Why wouldn't I just fork, build and use it for myself only?
+Why wouldn't I just fork, build and use it for myself only then?
 
 Because Icepenguins101 made CharmsMenu and CharmsClock in a way that allowed my OpenGlass setup to bring back the ✨aero✨ look of the Charms Bar.
 
@@ -86,6 +87,7 @@ Included in the Charms Bar are:
 * Native DWM window rendering
 * Fully supports DWMBlurGlass and OpenGlass
 * Mica by default on Windows 11
+* OS-based Start Menu button
 
 ### Already included
 
@@ -101,9 +103,8 @@ Included in the Charms Bar are:
 * Multi-monitor support (please read <a href="https://raw.githubusercontent.com/Kotofey008/charms-bar-mica/main/resource/helpwanted.txt">this</a>)
 * Touch-friendly
 * Customizable panels (can be removed through the Registry Editor)
-* Fully designable: includes a Windows 7 Metro concept, Windows 8 Developer Preview, Windows 8.1 Update 3, Windows 11 Metro concept and Windows 11 Fluent concept styles by default, or you can define your own custom theme
 * Pin anything to the Charms Bar for easy access
-* Switch between Win32 and Metro modes for the currently focused program
+* Switch between Win32 and Metro modes for the currently focused program (may not work)
 
 ## Supported languages
 
@@ -137,6 +138,12 @@ A: No. This project is <b>IN DEVELOPMENT</b> and should not be used by inexperie
 ### Q: How does this fork look like on Windows 10?
 
 A: Exactly the same as the original <a href="https://github.com/Icepenguins101/charms-bar-port">Charms Bar Port</a>, except for new Fluent UI icons.
+
+<br />
+
+### Q: How to enable Windows 7 Start Menu logo?
+
+A: Simply run the Charms Bar with "-7" or "--Win7" argument. You can do this by launching the program from the command line or by creating a shortcut with the argument added to the target path.
 
 <br />
 
@@ -234,7 +241,9 @@ A: This is a workaround to fix a crash bug. Use Task Manager if you need to stop
 
 ### Q: Why is it lagging on my machine?
 
-A: The network icon in Charms Clock uses the command prompt to receive network information. Performance improvements are still being worked on. I'll probably disable it completely in the future if I don't find a solution.
+A: Because this is public beta. I genuinely don't know why it may lag on some machines. If you can reproduce the problem, please report it through the GitHub Issues page with your hardware and Windows version.
+
+Honestly, it should not lag anymore, as I've got rid of Charms Bar Port's original netsh worker, that ran in the background to fetch network state for the respective icon in CharmsClock. Now, the Charms Bar fetches network state directly from the OS, which should be faster and more reliable.
 
 <br />
 
@@ -249,6 +258,8 @@ A: This may be hardware-specific. If you can reproduce the problem, please repor
 A: The original repository does not provide a license for its code. This project only grants rights to original material contributed by Kotofey008 under the license described in [LICENSE.md](LICENSE.md).
 
 Material originating from the original Charms Bar Port repository or other third parties is not relicensed by this project.
+
+In short: Yes, probably.
 
 <br />
 
